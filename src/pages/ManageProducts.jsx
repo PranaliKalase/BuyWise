@@ -40,6 +40,7 @@ export default function ManageProducts({ session }) {
       const { data, error } = await supabase
         .from('products')
         .select('*')
+        .eq('retailer_id', session.user.id)
         .order('created_at', { ascending: false });
 
       if (error) throw error;

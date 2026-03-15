@@ -78,7 +78,8 @@ export default function AdminUpload({ session }) {
           category,
           image: publicUrl,
           rating: 0.0, // Default new product rating
-          reviews: 0
+          reviews: 0,
+          retailer_id: session.user.id
         }
       ]);
 

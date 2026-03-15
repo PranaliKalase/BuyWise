@@ -9,11 +9,13 @@ create table if not exists products (
   category text,
   image text,
   in_stock boolean default true,
+  retailer_id uuid references auth.users(id),
   created_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
 
--- Safely add the column if the table already existed
+-- Safely add the columns if the table already existed
 alter table products add column if not exists in_stock boolean default true;
+alter table products add column if not exists retailer_id uuid references auth.users(id);
 
 -- Insert initial mockup data so the store isn't empty (only if table is empty)
 insert into products (name, description, price, rating, reviews, category, image)
@@ -34,10 +36,15 @@ alter table products enable row level security;
 -- Drop existing policies if they exist to allow re-runs
 drop policy if exists "Products are viewable by everyone." on products;
 drop policy if exists "Products are insertable by everyone." on products;
+drop policy if exists "Retailers can insert their own products." on products;
+drop policy if exists "Retailers can update their own products." on products;
+drop policy if exists "Retailers can delete their own products." on products;
 
--- Create policies for the products table (allow public read, allow insert for the admin upload page)
+-- Create policies for the products table
 create policy "Products are viewable by everyone." on products for select using (true);
-create policy "Products are insertable by everyone." on products for insert with check (true);
+create policy "Retailers can insert their own products." on products for insert with check (auth.uid() = retailer_id);
+create policy "Retailers can update their own products." on products for update using (auth.uid() = retailer_id);
+create policy "Retailers can delete their own products." on products for delete using (auth.uid() = retailer_id);
 
 -- Create a storage bucket for product images named 'product-images'
 insert into storage.buckets (id, name, public) 
