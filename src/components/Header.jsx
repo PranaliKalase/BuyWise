@@ -19,7 +19,7 @@ export default function Header({ session, onOpenImageSearch, onSearch }) {
           .select('role')
           .eq('id', session.user.id)
           .single();
-          
+
         if (data && !error) {
           setUserRole(data.role);
         } else {
@@ -30,7 +30,7 @@ export default function Header({ session, onOpenImageSearch, onSearch }) {
         setUserRole(null);
       }
     };
-    
+
     fetchRole();
   }, [session]);
 
@@ -41,13 +41,13 @@ export default function Header({ session, onOpenImageSearch, onSearch }) {
     <header className="header glass-panel">
       <div className="container header-container">
         <div className="logo">
-          <span className="text-gradient">NexGen</span> Retail
+          <span className="text-gradient">BuyWise</span> Retail
         </div>
-        
+
         <div className="search-bar">
-          <input 
-            type="text" 
-            placeholder="What are you looking for?" 
+          <input
+            type="text"
+            placeholder="What are you looking for?"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             onKeyDown={(e) => {
@@ -64,13 +64,13 @@ export default function Header({ session, onOpenImageSearch, onSearch }) {
           {!session ? (
             <button className="nav-btn" onClick={() => navigate('/auth')}>Sign In</button>
           ) : (
-            <div className="user-menu" style={{display: 'flex', alignItems: 'center', gap: '1rem'}}>
+            <div className="user-menu" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
               {userRole === 'retailer' && (
-                 <button className="nav-btn" style={{color: 'var(--primary-cyan)'}} onClick={() => navigate('/upload')}>
-                   Add Products
-                 </button>
+                <button className="nav-btn" style={{ color: 'var(--primary-cyan)' }} onClick={() => navigate('/upload')}>
+                  Add Products
+                </button>
               )}
-              <span style={{color: 'var(--text-muted)', fontSize: '0.9rem'}}>
+              <span style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>
                 {session?.user?.email}
               </span>
               <button className="nav-btn" onClick={handleSignOut}>Sign Out</button>
