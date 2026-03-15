@@ -4,10 +4,11 @@ import { useCart } from '../context/CartContext';
 import { supabase } from '../lib/supabaseClient';
 import './Header.css';
 
-export default function Header({ session, onOpenImageSearch }) {
+export default function Header({ session, onOpenImageSearch, onSearch }) {
   const { cartItemCount, setIsCartOpen } = useCart();
   const navigate = useNavigate();
   const [userRole, setUserRole] = useState(null);
+  const [searchQuery, setSearchQuery] = useState('');
 
   React.useEffect(() => {
     const fetchRole = async () => {
@@ -44,8 +45,18 @@ export default function Header({ session, onOpenImageSearch }) {
         </div>
         
         <div className="search-bar">
-          <input type="text" placeholder="What are you looking for?" />
-          <button className="icon-btn search-icon">🔍</button>
+          <input 
+            type="text" 
+            placeholder="What are you looking for?" 
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && onSearch) {
+                onSearch(searchQuery);
+              }
+            }}
+          />
+          <button className="icon-btn search-icon" onClick={() => onSearch && onSearch(searchQuery)}>🔍</button>
           <button className="icon-btn camera-icon" title="Search by Image" onClick={onOpenImageSearch}>📷</button>
         </div>
 

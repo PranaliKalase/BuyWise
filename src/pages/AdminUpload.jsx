@@ -132,7 +132,7 @@ export default function AdminUpload({ session }) {
 
           <div className="form-group row">
             <div className="form-group flex-1">
-              <label htmlFor="price">Price ($)</label>
+              <label htmlFor="price">Price (₹)</label>
               <input 
                 type="number" 
                 id="price" 

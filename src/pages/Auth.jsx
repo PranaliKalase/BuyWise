@@ -61,6 +61,23 @@ export default function Auth({ onAuthSuccess }) {
     }
   };
 
+  const handleGoogleAuth = async () => {
+    setLoading(true);
+    setErrorMsg('');
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: window.location.origin
+        }
+      });
+      if (error) throw error;
+    } catch (error) {
+      setErrorMsg(error.message);
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="auth-container">
       <div className="auth-card glass-panel">
@@ -131,6 +148,20 @@ export default function Auth({ onAuthSuccess }) {
             {loading ? 'Processing...' : isSignUp ? 'Sign Up' : 'Sign In'}
           </button>
         </form>
+
+        <div className="oauth-divider">
+          <span>or continue with</span>
+        </div>
+
+        <button 
+          className="btn btn-secondary auth-btn google-btn" 
+          onClick={handleGoogleAuth} 
+          disabled={loading}
+          type="button"
+        >
+          <img src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google" className="google-icon" />
+          Google
+        </button>
 
         <div className="auth-switch">
           <p>

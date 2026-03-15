@@ -40,7 +40,7 @@ export default function Cart() {
                 
                 <div className="cart-item-details">
                   <h4>{item.name}</h4>
-                  <p className="cart-item-price">${item.price.toFixed(2)}</p>
+                  <p className="cart-item-price">₹{item.price.toFixed(2)}</p>
                   
                   <div className="cart-item-controls">
                     <div className="quantity-controls">
@@ -63,7 +63,7 @@ export default function Cart() {
           <div className="cart-footer">
             <div className="cart-total">
               <span>Subtotal</span>
-              <span className="total-amount">${cartTotal.toFixed(2)}</span>
+              <span className="total-amount">₹{cartTotal.toFixed(2)}</span>
             </div>
             <p className="shipping-note">Shipping and taxes calculated at checkout.</p>
             <button className="btn btn-primary checkout-btn">

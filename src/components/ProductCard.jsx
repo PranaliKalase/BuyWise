@@ -40,7 +40,7 @@ export default function ProductCard({ product }) {
           <p className="product-desc">{product.description}</p>
           
           <div className="card-footer">
-            <span className="price">${product.price.toFixed(2)}</span>
+            <span className="price">₹{product.price.toFixed(2)}</span>
             <div className="rating">
                ⭐ {product.rating} <span className="reviews">({product.reviews})</span>
             </div>

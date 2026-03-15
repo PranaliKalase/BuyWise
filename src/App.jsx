@@ -49,6 +49,22 @@ function Home({ session }) {
   const [products, setProducts] = useState(MOCK_PRODUCTS);
   const [recommended, setRecommended] = useState(MOCK_PRODUCTS.filter(p => p.matchScore && p.matchScore > 90));
   const [searchResults, setSearchResults] = useState(null);
+  const [searchTitle, setSearchTitle] = useState("Search Results");
+
+  const handleTextSearch = (query) => {
+    if (!query || !query.trim()) {
+      setSearchResults(null);
+      return;
+    }
+    const q = query.toLowerCase();
+    const matches = products.filter(p => 
+      (p.name && p.name.toLowerCase().includes(q)) || 
+      (p.description && p.description.toLowerCase().includes(q)) ||
+      (p.category && p.category.toLowerCase().includes(q))
+    );
+    setSearchResults(matches);
+    setSearchTitle(`Results for "${query}"`);
+  };
 
   useEffect(() => {
     // Fetch from Supabase
@@ -89,13 +105,20 @@ function Home({ session }) {
 
   return (
     <>
-      <Header session={session} onOpenImageSearch={() => setImageSearchOpen(true)} />
+      <Header 
+        session={session} 
+        onOpenImageSearch={() => {
+          setImageSearchOpen(true);
+          setSearchTitle("Visual AI Search Results");
+        }} 
+        onSearch={handleTextSearch}
+      />
       <main className="main-content">
         <Hero />
         
         {searchResults && (
           <ProductGrid 
-            title="Visual AI Search Results" 
+            title={searchTitle} 
             products={searchResults} 
             personalized={true} 
           />
