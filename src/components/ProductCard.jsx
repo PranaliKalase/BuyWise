@@ -29,7 +29,6 @@ export default function ProductCard({ product }) {
           {/* Hover Actions */}
           <div className="card-overlay">
             <button className="action-btn icon-btn" title="Add to Wishlist">❤️</button>
-            <button className="action-btn icon-btn" title="Compare Prices" onClick={() => setIsCompareOpen(true)}>⚖️</button>
             <button className="action-btn icon-btn" title="View Similar">🔍</button>
           </div>
           
@@ -58,6 +57,13 @@ export default function ProductCard({ product }) {
             disabled={product.in_stock === false}
           >
             {product.in_stock === false ? 'Out of Stock' : 'Add to Cart'}
+          </button>
+          <button 
+            className="btn btn-secondary ai-analysis-btn" 
+            onClick={() => setIsCompareOpen(true)}
+            style={{ marginTop: '0.5rem', width: '100%', fontSize: '0.9rem', padding: '0.5rem' }}
+          >
+            ⚖️ AI Price Analysis
           </button>
         </div>
       </div>

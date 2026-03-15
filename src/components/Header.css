@@ -108,3 +108,43 @@
   border-radius: 50%;
   border: 2px solid var(--bg-surface);
 }
+
+/* Mobile Responsiveness */
+@media (max-width: 768px) {
+  .header {
+    height: auto;
+    padding: 1rem 0;
+  }
+  
+  .header-container {
+    flex-wrap: wrap;
+    gap: 1rem;
+    justify-content: center;
+  }
+  
+  .logo {
+    width: 100%;
+    text-align: center;
+    font-size: 1.8rem;
+  }
+  
+  .search-bar {
+    margin: 0;
+    width: 100%;
+    max-width: 100%;
+    order: 3;
+  }
+
+  .nav-actions {
+    width: 100%;
+    justify-content: center;
+    order: 2;
+    margin-bottom: 0.5rem;
+  }
+
+  .user-menu {
+    flex-direction: column;
+    gap: 0.5rem !important;
+  }
+}
+

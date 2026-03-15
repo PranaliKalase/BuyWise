@@ -194,3 +194,13 @@
   width: 20px;
   height: 20px;
 }
+
+@media (max-width: 768px) {
+  .auth-card {
+    padding: 1.5rem;
+  }
+  
+  .role-options {
+    flex-direction: column;
+  }
+}

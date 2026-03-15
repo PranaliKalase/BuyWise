@@ -188,3 +188,17 @@
   transform: none;
   box-shadow: none;
 }
+
+@media (max-width: 640px) {
+  .card-content {
+    padding: 1rem;
+  }
+  
+  .product-name {
+    font-size: 1rem;
+  }
+
+  .price {
+    font-size: 1.125rem;
+  }
+}

@@ -160,16 +160,33 @@
 }
 
 @media (max-width: 900px) {
+  .hero {
+    padding: 3rem 0;
+  }
+
   .hero-container {
     flex-direction: column;
     text-align: center;
+    gap: 2rem;
   }
   
   .hero-actions {
     justify-content: center;
+    flex-direction: column;
+    gap: 1rem;
   }
   
   .hero-title {
-    font-size: 3rem;
+    font-size: 2.5rem;
+    margin-bottom: 1rem;
+  }
+
+  .hero-subtitle {
+    font-size: 1rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .floating-object {
+    max-width: 300px;
   }
 }
