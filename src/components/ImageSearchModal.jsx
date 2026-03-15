@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import * as tf from '@tensorflow/tfjs';
 import * as mobilenet from '@tensorflow-models/mobilenet';
-import { MOCK_PRODUCTS } from '../mockData/products';
+import { supabase } from '../lib/supabaseClient';
 import './ImageSearchModal.css';
 
 export default function ImageSearchModal({ isOpen, onClose, onSearchResults }) {
@@ -118,8 +118,14 @@ export default function ImageSearchModal({ isOpen, onClose, onSearchResults }) {
 
         console.log('Enriched prediction words for matching:', enrichedWords);
 
-        // Simple fuzzy search against MOCK_PRODUCTS
-        matchedResults = MOCK_PRODUCTS.filter(product => {
+        // Fetch live products from Supabase to match against
+        const { data: dbProducts, error } = await supabase.from('products').select('*');
+        if (error) throw error;
+        
+        const productsToSearch = dbProducts || [];
+
+        // Simple fuzzy search against live products
+        matchedResults = productsToSearch.filter(product => {
           const textToSearch = `${product.name} ${product.description} ${product.category}`.toLowerCase();
           return enrichedWords.some(word => textToSearch.includes(word));
         });
@@ -127,7 +133,7 @@ export default function ImageSearchModal({ isOpen, onClose, onSearchResults }) {
         // If no strict matches, fallback gracefully (use random products)
         if (matchedResults.length === 0) {
           console.log("No explicit match found in our catalog, falling back to visually similar products");
-          matchedResults = [...MOCK_PRODUCTS].sort(() => 0.5 - Math.random()).slice(0, 3);
+          matchedResults = [...productsToSearch].sort(() => 0.5 - Math.random()).slice(0, 3);
         }
       }
 

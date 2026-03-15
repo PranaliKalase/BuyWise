@@ -1,5 +1,6 @@
 import React from 'react';
 import './Hero.css';
+import futuristicDrone from '../assets/futuristicDrone.jpg';
 
 export default function Hero() {
   return (
@@ -18,9 +19,8 @@ export default function Hero() {
           </div>
         </div>
         <div className="hero-visual">
-          {/* Abstract placeholder for high-end graphic/3D object */}
           <div className="floating-object glass-panel glow">
-            <img src="/assets/FuturisticDrone.jpg" alt="Futuristic Drone" className="hero-img" />
+            <img src={futuristicDrone} alt="Futuristic Drone" className="hero-img" />
           </div>
         </div>
       </div>

@@ -1,9 +1,16 @@
 import React, { useState } from 'react';
+import { useCart } from '../context/CartContext';
 import './ProductCard.css';
 import PriceComparisonModal from './PriceComparisonModal';
 
 export default function ProductCard({ product }) {
   const [isCompareOpen, setIsCompareOpen] = useState(false);
+  const { addToCart, setIsCartOpen } = useCart();
+
+  const handleAddToCart = () => {
+    addToCart(product);
+    setIsCartOpen(true);
+  };
 
   return (
     <>
@@ -39,7 +46,7 @@ export default function ProductCard({ product }) {
             </div>
           </div>
 
-          <button className="btn btn-add-cart">Add to Cart</button>
+          <button className="btn btn-add-cart" onClick={handleAddToCart}>Add to Cart</button>
         </div>
       </div>
       

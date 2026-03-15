@@ -1,46 +1,95 @@
 import { useState, useEffect } from 'react'
+import { Routes, Route, useNavigate } from 'react-router-dom'
 import './App.css'
 import Header from './components/Header'
 import Hero from './components/Hero'
 import ProductGrid from './components/ProductGrid'
 import ShoppingAssistant from './components/ShoppingAssistant'
 import ImageSearchModal from './components/ImageSearchModal'
+import Cart from './components/Cart'
+import Auth from './pages/Auth'
+import AdminUpload from './pages/AdminUpload'
+import { CartProvider } from './context/CartContext'
+import { supabase } from './lib/supabaseClient'
 import { MOCK_PRODUCTS } from './mockData/products'
 
 function App() {
+  const [session, setSession] = useState(null)
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session)
+    })
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session)
+    })
+
+    return () => subscription.unsubscribe()
+  }, [])
+
+  return (
+    <CartProvider>
+      <div className="app-container">
+        <Routes>
+          <Route path="/" element={<Home session={session} />} />
+          <Route path="/auth" element={<Auth />} />
+          <Route path="/upload" element={<AdminUpload session={session} />} />
+        </Routes>
+        <Cart />
+      </div>
+    </CartProvider>
+  )
+}
+
+function Home({ session }) {
   const [isImageSearchOpen, setImageSearchOpen] = useState(false);
   const [products, setProducts] = useState(MOCK_PRODUCTS);
   const [recommended, setRecommended] = useState(MOCK_PRODUCTS.filter(p => p.matchScore && p.matchScore > 90));
   const [searchResults, setSearchResults] = useState(null);
 
   useEffect(() => {
-    // Attempt to fetch from Python Backend
-    const fetchData = async () => {
+    // Fetch from Supabase
+    const fetchProducts = async () => {
       try {
-        const prodRes = await fetch('http://localhost:8000/api/products');
-        if (prodRes.ok) {
-          const prods = await prodRes.json();
-          setProducts(prods);
+        const { data, error } = await supabase
+          .from('products')
+          .select('*')
+          .order('created_at', { ascending: false });
+
+        if (error) {
+          console.error("Supabase fetch error:", error);
+          throw error;
         }
-        
-        // Fetch recommendations based on a popular product (e.g. p1)
-        const recRes = await fetch('http://localhost:8000/api/recommendations/p1');
-        if (recRes.ok) {
-          const recData = await recRes.json();
-          if (recData.results) {
-            setRecommended(recData.results);
-          }
+
+        if (data && data.length > 0) {
+          setProducts(data);
+          
+          // Generate mock recommendations by just picking random items for now
+          // (Since we don't have python TFIDF backend running)
+          const shuffled = [...data].sort(() => 0.5 - Math.random());
+          const mockRecs = shuffled.slice(0, 3).map(p => ({
+            ...p,
+            matchScore: Math.floor(Math.random() * (99 - 85 + 1)) + 85
+          }));
+          setRecommended(mockRecs);
+        } else {
+           // Fallback to mock data if table is empty
+           console.log("No data in Supabase yet, showing local mocks.");
         }
       } catch (e) {
-        console.log("Backend not running, using local mock data.");
+        console.warn("Failed to reach Supabase database. Are the keys setup?", e);
       }
     };
-    fetchData();
+    
+    fetchProducts();
   }, []);
 
   return (
-    <div className="app-container">
-      <Header onOpenImageSearch={() => setImageSearchOpen(true)} />
+    <>
+      <Header session={session} onOpenImageSearch={() => setImageSearchOpen(true)} />
       <main className="main-content">
         <Hero />
         
@@ -70,7 +119,7 @@ function App() {
         onClose={() => setImageSearchOpen(false)} 
         onSearchResults={setSearchResults}
       />
-    </div>
+    </>
   )
 }
 
