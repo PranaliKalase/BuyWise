@@ -7,7 +7,7 @@ export default function PriceComparisonModal({ product, isOpen, onClose }) {
   const mockCompetitors = [
     { name: 'GlobalMarket', price: product.price + 15, shipping: 'Free', aiTake: 'Slightly higher price.' },
     { name: 'TechHaven', price: product.price - 5, shipping: '₹800.00', aiTake: 'Lower base price, but higher total due to shipping.' },
-    { name: 'NexGen Retail (Us)', price: product.price, shipping: 'Prime Free', aiTake: 'Best overall value match based on your preferences.' }
+    { name: 'BuyWise Retail (Us)', price: product.price, shipping: 'Prime Free', aiTake: 'Best overall value match based on your preferences.' }
   ];
 
   return (
@@ -16,7 +16,7 @@ export default function PriceComparisonModal({ product, isOpen, onClose }) {
         <button className="close-btn" onClick={onClose}>×</button>
         <h2 className="modal-title">AI Price Analysis</h2>
         <p className="modal-subtitle">Real-time market scan for <strong>{product.name}</strong></p>
-        
+
         <div className="comparison-list">
           {mockCompetitors.map((comp, idx) => (
             <div key={idx} className={`comparison-card ${comp.name.includes('NexGen') ? 'highlight' : ''}`}>
