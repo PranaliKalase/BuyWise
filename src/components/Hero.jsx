@@ -14,8 +14,7 @@ export default function Hero() {
             Discover products you didn't know you needed.
           </p>
           <div className="hero-actions">
-            <button className="btn btn-primary">Shop Top AI Picks</button>
-            <button className="btn btn-secondary glass-panel">Watch Demo</button>
+
           </div>
         </div>
         <div className="hero-visual">
