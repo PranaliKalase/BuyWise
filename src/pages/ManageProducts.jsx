@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
+import { ArrowLeft } from 'lucide-react';
 import './ManageProducts.css';
 
 export default function ManageProducts({ session }) {
@@ -108,7 +109,12 @@ export default function ManageProducts({ session }) {
   return (
     <div className="manage-container container">
       <div className="manage-header">
-        <h1 className="text-gradient">Manage Inventory</h1>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+          <button className="back-btn" onClick={() => navigate('/')} title="Back to Storefront">
+            <ArrowLeft size={24} />
+          </button>
+          <h1 className="text-gradient" style={{ margin: 0 }}>Manage Inventory</h1>
+        </div>
         <button className="btn btn-primary" onClick={() => navigate('/upload')}>
           Add New Product
         </button>

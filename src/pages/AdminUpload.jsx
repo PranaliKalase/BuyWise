@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
+import { ArrowLeft } from 'lucide-react';
 import './AdminUpload.css'; // We'll style it similarly to Auth
 
 export default function AdminUpload({ session }) {
@@ -109,7 +110,12 @@ export default function AdminUpload({ session }) {
   return (
     <div className="admin-container">
       <div className="admin-card glass-panel">
-        <h2 className="text-gradient">Retailer Portal</h2>
+        <div className="admin-header">
+          <button className="back-btn" onClick={() => navigate('/manage')} title="Back to Manage Inventory">
+            <ArrowLeft size={20} />
+          </button>
+          <h2 className="text-gradient" style={{ margin: 0 }}>Retailer Portal</h2>
+        </div>
         <p className="admin-subtitle">Add a new product to the storefront catalog.</p>
 
         {statusMsg && (
