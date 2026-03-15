@@ -8,8 +8,12 @@ create table if not exists products (
   reviews numeric default 0,
   category text,
   image text,
+  in_stock boolean default true,
   created_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
+
+-- Safely add the column if the table already existed
+alter table products add column if not exists in_stock boolean default true;
 
 -- Insert initial mockup data so the store isn't empty (only if table is empty)
 insert into products (name, description, price, rating, reviews, category, image)

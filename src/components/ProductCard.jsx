@@ -32,6 +32,12 @@ export default function ProductCard({ product }) {
             <button className="action-btn icon-btn" title="Compare Prices" onClick={() => setIsCompareOpen(true)}>⚖️</button>
             <button className="action-btn icon-btn" title="View Similar">🔍</button>
           </div>
+          
+          {product.in_stock === false && (
+            <div className="out-of-stock-overlay">
+              <span>Out of Stock</span>
+            </div>
+          )}
         </div>
 
         <div className="card-content">
@@ -46,7 +52,13 @@ export default function ProductCard({ product }) {
             </div>
           </div>
 
-          <button className="btn btn-add-cart" onClick={handleAddToCart}>Add to Cart</button>
+          <button 
+            className="btn btn-add-cart" 
+            onClick={handleAddToCart}
+            disabled={product.in_stock === false}
+          >
+            {product.in_stock === false ? 'Out of Stock' : 'Add to Cart'}
+          </button>
         </div>
       </div>
       

@@ -9,6 +9,7 @@ import ImageSearchModal from './components/ImageSearchModal'
 import Cart from './components/Cart'
 import Auth from './pages/Auth'
 import AdminUpload from './pages/AdminUpload'
+import ManageProducts from './pages/ManageProducts'
 import { CartProvider } from './context/CartContext'
 import { supabase } from './lib/supabaseClient'
 import { MOCK_PRODUCTS } from './mockData/products'
@@ -37,6 +38,7 @@ function App() {
           <Route path="/" element={<Home session={session} />} />
           <Route path="/auth" element={<Auth />} />
           <Route path="/upload" element={<AdminUpload session={session} />} />
+          <Route path="/manage" element={<ManageProducts session={session} />} />
         </Routes>
         <Cart />
       </div>

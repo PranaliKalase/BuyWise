@@ -66,9 +66,14 @@ export default function Header({ session, onOpenImageSearch, onSearch }) {
           ) : (
             <div className="user-menu" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
               {userRole === 'retailer' && (
-                <button className="nav-btn" style={{ color: 'var(--primary-cyan)' }} onClick={() => navigate('/upload')}>
-                  Add Products
-                </button>
+                 <>
+                   <button className="nav-btn" style={{color: 'var(--primary-cyan)'}} onClick={() => navigate('/manage')}>
+                     Manage Inventory
+                   </button>
+                   <button className="nav-btn" style={{color: 'var(--primary-cyan)'}} onClick={() => navigate('/upload')}>
+                     Add Products
+                   </button>
+                 </>
               )}
               <span style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>
                 {session?.user?.email}

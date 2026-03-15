@@ -32,13 +32,13 @@ export default function Auth({ onAuthSuccess }) {
         });
 
         if (error) throw error;
-        
+
         // Check if an email confirmation is required (Supabase default)
         if (data?.user && data?.session === null) {
-            setErrorMsg("Registration successful! Check your email to confirm your account (or just sign in if email confirmation is disabled).");
+          setErrorMsg("Registration successful! Check your email to confirm your account (or just sign in if email confirmation is disabled).");
         } else if (data?.session) {
-            if (onAuthSuccess) onAuthSuccess(data.session.user);
-            navigate('/');
+          if (onAuthSuccess) onAuthSuccess(data.session.user);
+          navigate('/');
         }
       } else {
         // Sign In Flow
@@ -48,10 +48,10 @@ export default function Auth({ onAuthSuccess }) {
         });
 
         if (error) throw error;
-        
+
         if (data?.session) {
-           if (onAuthSuccess) onAuthSuccess(data.session.user);
-           navigate('/');
+          if (onAuthSuccess) onAuthSuccess(data.session.user);
+          navigate('/');
         }
       }
     } catch (error) {
@@ -83,8 +83,8 @@ export default function Auth({ onAuthSuccess }) {
       <div className="auth-card glass-panel">
         <h2 className="text-gradient">{isSignUp ? 'Create an Account' : 'Welcome Back'}</h2>
         <p className="auth-subtitle">
-          {isSignUp 
-            ? 'Join NexGen Retail today and explore futuristic shopping.' 
+          {isSignUp
+            ? 'Join NexGen Retail today and explore futuristic shopping.'
             : 'Sign in to manage your cart and view personalized recommendations.'}
         </p>
 
@@ -93,10 +93,10 @@ export default function Auth({ onAuthSuccess }) {
         <form onSubmit={handleAuth} className="auth-form">
           <div className="form-group">
             <label htmlFor="email">Email Address</label>
-            <input 
-              type="email" 
-              id="email" 
-              required 
+            <input
+              type="email"
+              id="email"
+              required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="you@example.com"
@@ -105,10 +105,10 @@ export default function Auth({ onAuthSuccess }) {
 
           <div className="form-group">
             <label htmlFor="password">Password</label>
-            <input 
-              type="password" 
-              id="password" 
-              required 
+            <input
+              type="password"
+              id="password"
+              required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="••••••••"
@@ -121,22 +121,22 @@ export default function Auth({ onAuthSuccess }) {
               <label>I am a...</label>
               <div className="role-options">
                 <label className={`role-option ${role === 'customer' ? 'selected' : ''}`}>
-                  <input 
-                    type="radio" 
-                    name="role" 
-                    value="customer" 
-                    checked={role === 'customer'} 
-                    onChange={() => setRole('customer')} 
+                  <input
+                    type="radio"
+                    name="role"
+                    value="customer"
+                    checked={role === 'customer'}
+                    onChange={() => setRole('customer')}
                   />
                   <span>Customer 🛒</span>
                 </label>
                 <label className={`role-option ${role === 'retailer' ? 'selected' : ''}`}>
-                  <input 
-                    type="radio" 
-                    name="role" 
-                    value="retailer" 
-                    checked={role === 'retailer'} 
-                    onChange={() => setRole('retailer')} 
+                  <input
+                    type="radio"
+                    name="role"
+                    value="retailer"
+                    checked={role === 'retailer'}
+                    onChange={() => setRole('retailer')}
                   />
                   <span>Retailer 🏬</span>
                 </label>
@@ -149,25 +149,15 @@ export default function Auth({ onAuthSuccess }) {
           </button>
         </form>
 
-        <div className="oauth-divider">
-          <span>or continue with</span>
-        </div>
 
-        <button 
-          className="btn btn-secondary auth-btn google-btn" 
-          onClick={handleGoogleAuth} 
-          disabled={loading}
-          type="button"
-        >
-          <img src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google" className="google-icon" />
-          Google
-        </button>
+
+
 
         <div className="auth-switch">
           <p>
             {isSignUp ? 'Already have an account?' : "Don't have an account?"}
-            <button 
-              className="text-btn" 
+            <button
+              className="text-btn"
               onClick={() => {
                 setIsSignUp(!isSignUp);
                 setErrorMsg('');
@@ -177,9 +167,9 @@ export default function Auth({ onAuthSuccess }) {
             </button>
           </p>
         </div>
-        
+
         <button className="btn btn-secondary back-home-btn" onClick={() => navigate('/')}>
-           Return to Store
+          Return to Store
         </button>
       </div>
     </div>
