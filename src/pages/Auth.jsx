@@ -10,6 +10,7 @@ export default function Auth({ onAuthSuccess }) {
   const [role, setRole] = useState('customer'); // Default to customer
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+  const [successMsg, setSuccessMsg] = useState('');
 
   const navigate = useNavigate();
 
@@ -17,6 +18,7 @@ export default function Auth({ onAuthSuccess }) {
     e.preventDefault();
     setLoading(true);
     setErrorMsg('');
+    setSuccessMsg('');
 
     try {
       if (isSignUp) {
@@ -33,12 +35,15 @@ export default function Auth({ onAuthSuccess }) {
 
         if (error) throw error;
 
-        // Check if an email confirmation is required (Supabase default)
         if (data?.user && data?.session === null) {
-          setErrorMsg("Registration successful! Check your email to confirm your account (or just sign in if email confirmation is disabled).");
+          setSuccessMsg("Registration successful! Check your email to confirm your account (or just sign in if email confirmation is disabled).");
         } else if (data?.session) {
-          if (onAuthSuccess) onAuthSuccess(data.session.user);
-          navigate('/');
+          setSuccessMsg("Registration successful! Redirecting...");
+          setTimeout(() => {
+             if (onAuthSuccess) onAuthSuccess(data.session.user);
+             const userRole = data.session.user.user_metadata?.role || role;
+             navigate(userRole === 'retailer' ? '/retailer-dashboard' : '/');
+          }, 1200);
         }
       } else {
         // Sign In Flow
@@ -50,8 +55,20 @@ export default function Auth({ onAuthSuccess }) {
         if (error) throw error;
 
         if (data?.session) {
-          if (onAuthSuccess) onAuthSuccess(data.session.user);
-          navigate('/');
+          // Fetch role dynamically from the database using the session user id to handle older accounts or changed roles
+          const { data: userData } = await supabase
+            .from('users')
+            .select('role')
+            .eq('id', data.session.user.id)
+            .single();
+          
+          const finalRole = userData?.role || data.session.user.user_metadata?.role || 'customer';
+          
+          setSuccessMsg("Sign in successful! Redirecting...");
+          setTimeout(() => {
+             if (onAuthSuccess) onAuthSuccess(data.session.user);
+             navigate(finalRole === 'retailer' ? '/retailer-dashboard' : '/');
+          }, 1200);
         }
       }
     } catch (error) {
@@ -64,6 +81,7 @@ export default function Auth({ onAuthSuccess }) {
   const handleGoogleAuth = async () => {
     setLoading(true);
     setErrorMsg('');
+    setSuccessMsg('');
     try {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
@@ -89,6 +107,7 @@ export default function Auth({ onAuthSuccess }) {
         </p>
 
         {errorMsg && <div className="auth-error glass-panel">{errorMsg}</div>}
+        {successMsg && <div className="auth-success glass-panel">{successMsg}</div>}
 
         <form onSubmit={handleAuth} className="auth-form">
           <div className="form-group">

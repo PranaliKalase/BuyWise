@@ -8,7 +8,7 @@ export default function AdminUpload({ session }) {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [price, setPrice] = useState('');
-  const [category, setCategory] = useState('electronics');
+  const [category, setCategory] = useState("Men's Fashion");
   const [imageFile, setImageFile] = useState(null);
   const [loading, setLoading] = useState(false);
   const [statusMsg, setStatusMsg] = useState('');
@@ -159,11 +159,17 @@ export default function AdminUpload({ session }) {
                 value={category} 
                 onChange={(e) => setCategory(e.target.value)}
               >
-                <option value="electronics">Electronics</option>
-                <option value="wearables">Wearables</option>
-                <option value="home">Smart Home</option>
-                <option value="vehicles">Vehicles</option>
-                <option value="fashion">Fashion</option>
+                <option value="Men's Fashion">Men's Fashion</option>
+                <option value="Women's Fashion">Women's Fashion</option>
+                <option value="Home & Kitchen">Home & Kitchen</option>
+                <option value="Kid's Fashion">Kid's Fashion</option>
+                <option value="Beauty & Health">Beauty & Health</option>
+                <option value="Automotives">Automotives</option>
+                <option value="Mobile Accessories">Mobile Accessories</option>
+                <option value="Electronics">Electronics</option>
+                <option value="Sports & Fitness">Sports & Fitness</option>
+                <option value="Computers">Computers</option>
+                <option value="Books">Books</option>
               </select>
             </div>
           </div>

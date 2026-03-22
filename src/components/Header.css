@@ -148,3 +148,57 @@
   }
 }
 
+/* Voice Search Enhancements */
+.listening-input {
+  color: #fca5a5 !important;
+  font-weight: 500;
+}
+
+.listening-input::placeholder {
+  color: #ef4444 !important;
+  opacity: 1;
+}
+
+.mic-icon {
+  font-size: 1.1rem;
+  color: rgba(255, 255, 255, 0.7);
+  transition: all 0.3s ease;
+}
+
+.mic-icon.listening {
+  color: #ef4444;
+  background: rgba(239, 68, 68, 0.1);
+}
+
+.pulse-animation {
+  animation: gentlePulse 1.5s infinite;
+}
+
+@keyframes gentlePulse {
+  0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
+  70% { transform: scale(1.1); box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
+  100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+}
+
+.speech-error-msg {
+  position: absolute;
+  top: 110%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #fef2f2;
+  color: #dc2626;
+  padding: 0.4rem 0.8rem;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  white-space: nowrap;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+  border: 1px solid #fca5a5;
+  z-index: 100;
+  animation: slideDown 0.2s ease;
+}
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translate(-50%, -10px); }
+  to { opacity: 1; transform: translate(-50%, 0); }
+}
+

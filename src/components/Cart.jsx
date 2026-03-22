@@ -1,9 +1,11 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { ShoppingCart, X, Plus, Minus, Trash2 } from 'lucide-react';
 import './Cart.css'; // We'll create this next
 
 export default function Cart() {
+  const navigate = useNavigate();
   const { cartItems, isCartOpen, setIsCartOpen, removeFromCart, updateQuantity, cartTotal } = useCart();
 
   if (!isCartOpen) return null;
@@ -66,7 +68,10 @@ export default function Cart() {
               <span className="total-amount">₹{cartTotal.toFixed(2)}</span>
             </div>
             <p className="shipping-note">Shipping and taxes calculated at checkout.</p>
-            <button className="btn btn-primary checkout-btn">
+            <button className="btn btn-primary checkout-btn" onClick={() => {
+              setIsCartOpen(false);
+              navigate('/checkout');
+            }}>
               Proceed to Checkout
             </button>
           </div>

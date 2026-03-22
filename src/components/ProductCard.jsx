@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
 import { useCart } from '../context/CartContext';
+import { useFavorites } from '../context/FavoritesContext';
 import './ProductCard.css';
 import PriceComparisonModal from './PriceComparisonModal';
 
 export default function ProductCard({ product }) {
   const [isCompareOpen, setIsCompareOpen] = useState(false);
   const { addToCart, setIsCartOpen } = useCart();
+  const { toggleFavorite, isFavorite } = useFavorites();
 
   const handleAddToCart = () => {
     addToCart(product);
@@ -28,7 +30,14 @@ export default function ProductCard({ product }) {
           
           {/* Hover Actions */}
           <div className="card-overlay">
-            <button className="action-btn icon-btn" title="Add to Wishlist">❤️</button>
+            <button 
+              className="action-btn icon-btn" 
+              title={isFavorite(product.id) ? "Remove from Favorites" : "Add to Favorites"}
+              onClick={() => toggleFavorite(product)}
+              style={{ background: isFavorite(product.id) ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.8)' }}
+            >
+              {isFavorite(product.id) ? '❤️' : '🤍'}
+            </button>
             <button className="action-btn icon-btn" title="View Similar">🔍</button>
           </div>
           

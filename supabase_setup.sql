@@ -103,3 +103,70 @@ drop trigger if exists on_auth_user_created on auth.users;
 create trigger on_auth_user_created
   after insert on auth.users
   for each row execute procedure public.handle_new_user();
+
+
+-- ==========================================
+-- ORDERS AND FLASH SALES ADDITIONS
+-- ==========================================
+
+-- 1. Create Orders Table
+CREATE TABLE if not exists orders (
+  id uuid default uuid_generate_v4() primary key,
+  retailer_id uuid references auth.users(id),
+  customer_name text not null,
+  customer_email text not null,
+  total_amount numeric not null,
+  cart_items jsonb,
+  shipping_address jsonb,
+  payment_method text,
+  status text default 'Processing',
+  created_at timestamp with time zone default timezone('utc'::text, now()) not null
+);
+
+-- Ensure existing 'orders' table gets the new columns!
+ALTER TABLE if exists orders ADD COLUMN if not exists cart_items jsonb;
+ALTER TABLE if exists orders ADD COLUMN if not exists shipping_address jsonb;
+ALTER TABLE if exists orders ADD COLUMN if not exists payment_method text;
+
+-- 2. Create Flash Sales / Events Table
+CREATE TABLE if not exists flash_sales (
+  id uuid default uuid_generate_v4() primary key,
+  retailer_id uuid references auth.users(id),
+  title text not null,
+  description text,
+  product_id uuid references products(id),
+  discount_percentage numeric default 0,
+  image_url text,
+  valid_until timestamp with time zone,
+  created_at timestamp with time zone default timezone('utc'::text, now()) not null
+);
+
+-- Ensure existing 'flash_sales' table gets the new column!
+ALTER TABLE if exists flash_sales ADD COLUMN if not exists product_id uuid references products(id);
+
+-- Setup basic RLS (Row Level Security) policies so the frontend can read/write
+ALTER TABLE orders ENABLE ROW LEVEL SECURITY;
+ALTER TABLE flash_sales ENABLE ROW LEVEL SECURITY;
+
+-- Drop existing policies for flash_sales and orders if they exist to allow clean re-runs
+drop policy if exists "Public profiles are viewable by everyone." on flash_sales;
+drop policy if exists "Retailers can insert flash sales" on flash_sales;
+drop policy if exists "Retailers can update their own flash sales" on flash_sales;
+drop policy if exists "Retailers can delete their own flash sales" on flash_sales;
+
+drop policy if exists "Retailers can view their orders" on orders;
+drop policy if exists "Anyone can insert orders" on orders;
+
+-- Allow public read access to flash sales (so customers can see them on the Storefront!)
+CREATE POLICY "Public profiles are viewable by everyone." ON flash_sales FOR SELECT USING (true);
+
+-- Allow authenticated retailers to insert their own flash sales
+CREATE POLICY "Retailers can insert flash sales" ON flash_sales FOR INSERT WITH CHECK (auth.uid() = retailer_id);
+CREATE POLICY "Retailers can update their own flash sales" ON flash_sales FOR UPDATE USING (auth.uid() = retailer_id);
+CREATE POLICY "Retailers can delete their own flash sales" ON flash_sales FOR DELETE USING (auth.uid() = retailer_id);
+
+-- Allow retailers to see their own orders
+CREATE POLICY "Retailers can view their orders" ON orders FOR SELECT USING (auth.uid() = retailer_id);
+
+-- Normally, customers check out securely, but for demonstration, let's allow ANY insert into orders
+CREATE POLICY "Anyone can insert orders" ON orders FOR INSERT WITH CHECK (true);
