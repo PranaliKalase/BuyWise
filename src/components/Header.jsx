@@ -99,7 +99,7 @@ export default function Header({ session, onOpenImageSearch }) {
   return (
     <header className="header glass-panel">
       <div className="container header-container">
-        <div className="logo">
+        <div className="logo" onClick={() => navigate('/')} style={{ cursor: 'pointer' }}>
           <span className="text-gradient">BuyWise</span> Retail
         </div>
 

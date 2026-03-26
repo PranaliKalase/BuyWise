@@ -1,10 +1,12 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import * as tf from '@tensorflow/tfjs';
 import * as mobilenet from '@tensorflow-models/mobilenet';
 import { supabase } from '../lib/supabaseClient';
 import './ImageSearchModal.css';
 
 export default function ImageSearchModal({ isOpen, onClose, onSearchResults }) {
+  const navigate = useNavigate();
   const [isDragging, setIsDragging] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
   const [model, setModel] = useState(null);
@@ -80,81 +82,75 @@ export default function ImageSearchModal({ isOpen, onClose, onSearchResults }) {
       // Classify the image using the local MobileNet model
       const predictions = await model.classify(img);
       console.log('MobileNet Predictions: ', predictions);
-      
-      let matchedResults = [];
 
+      // Extract the best search keyword from predictions
+      let searchKeyword = '';
       if (predictions && predictions.length > 0) {
-        const topPrediction = predictions[0].className.toLowerCase();
-        console.log(`Top match: ${topPrediction}`);
-        
-        // Extract all words from top 3 predictions to increase match chance
-        const allPredictionWords = predictions
+        // Get all meaningful words from top predictions
+        const allWords = predictions
           .flatMap(p => p.className.toLowerCase().split(/[\s,]+/))
-          .filter(word => word.length > 2); // filter out short words
+          .filter(w => w.length > 2);
 
-        // Pre-defined category mapping for better matches with ImageNet classes
+        // Category mapping: map AI labels to product-friendly search terms
         const categoryMap = {
-          'shoe': ['shoe', 'sneaker', 'boot', 'footwear', 'sandal', 'cleat', 'running'],
-          'glasses': ['glasses', 'sunglasses', 'spectacles', 'goggle', 'lens', 'shade'],
-          'watch': ['watch', 'tracker', 'band', 'clock', 'wrist', 'timepiece'],
-          'headphone': ['headphone', 'headset', 'earphone', 'audio', 'speaker'],
-          'electronics': ['screen', 'monitor', 'computer', 'device', 'remote', 'hub', 'mouse', 'keyboard', 'laptop', 'desktop', 'television']
+          'shoe': 'shoes', 'sneaker': 'shoes', 'boot': 'shoes', 'sandal': 'shoes',
+          'loafer': 'shoes', 'clog': 'shoes', 'running': 'shoes',
+          'sunglass': 'glasses', 'spectacle': 'glasses',
+          'watch': 'watch', 'clock': 'watch', 'digital': 'watch',
+          'headphone': 'headphone', 'headset': 'headphone', 'earphone': 'headphone',
+          'laptop': 'laptop', 'notebook': 'laptop', 'computer': 'computer',
+          'mouse': 'mouse', 'keyboard': 'keyboard',
+          'monitor': 'monitor', 'screen': 'monitor', 'television': 'tv',
+          'phone': 'phone', 'cellular': 'phone', 'mobile': 'phone', 'smartphone': 'phone',
+          'shirt': 'shirt', 'jersey': 'shirt', 'sweatshirt': 'shirt',
+          'jean': 'jeans', 'trouser': 'pants', 'pant': 'pants',
+          'jacket': 'jacket', 'coat': 'jacket',
+          'bag': 'bag', 'backpack': 'bag', 'purse': 'bag', 'handbag': 'bag',
+          'camera': 'camera', 'reflex': 'camera',
+          'speaker': 'speaker', 'loudspeaker': 'speaker',
+          'book': 'books', 'bookshop': 'books',
+          'perfume': 'perfume', 'lotion': 'beauty',
+          'car': 'car', 'vehicle': 'car',
+          'bicycle': 'bicycle', 'bike': 'bicycle',
+          'ring': 'jewelry', 'necklace': 'jewelry', 'bracelet': 'jewelry',
+          'toy': 'toys', 'game': 'gaming', 'console': 'gaming',
+          'chair': 'furniture', 'table': 'furniture', 'desk': 'furniture',
+          'lamp': 'lamp', 'light': 'lighting'
         };
 
-        // Enrich prediction words based on map
-        let enrichedWords = [...allPredictionWords];
-        for (const [category, keywords] of Object.entries(categoryMap)) {
-           if (keywords.some(kw => allPredictionWords.some(pw => pw.includes(kw) || kw.includes(pw)))) {
-               // If there's a match in the mapping, push the general category
-               enrichedWords.push(category);
-               // and maybe related words from our mock products
-               if (category === 'glasses') enrichedWords.push('aura'); // map to Aura Smart Glasses
-               if (category === 'shoe') enrichedWords.push('aero'); // map to Aero-Dynamic Running Shoes
-               if (category === 'watch') enrichedWords.push('quantum'); // map to Quantum Fitness Tracker
-               if (category === 'headphone') enrichedWords.push('neural'); // map to Neural Link Headphones
-               if (category === 'electronics') enrichedWords.push('eco-smart', 'haptic', 'aura'); // map to Hub or Gloves or Glasses
-           }
+        // Try to find a mapped keyword first
+        for (const word of allWords) {
+          for (const [key, value] of Object.entries(categoryMap)) {
+            if (word.includes(key) || key.includes(word)) {
+              searchKeyword = value;
+              break;
+            }
+          }
+          if (searchKeyword) break;
         }
 
-        console.log('Enriched prediction words for matching:', enrichedWords);
-
-        // Fetch live products from Supabase to match against
-        const { data: dbProducts, error } = await supabase.from('products').select('*');
-        if (error) throw error;
-        
-        const productsToSearch = dbProducts || [];
-
-        // Simple fuzzy search against live products
-        matchedResults = productsToSearch.filter(product => {
-          const textToSearch = `${product.name} ${product.description} ${product.category}`.toLowerCase();
-          return enrichedWords.some(word => textToSearch.includes(word));
-        });
-
-        // If no strict matches, fallback gracefully (use random products)
-        if (matchedResults.length === 0) {
-          console.log("No explicit match found in our catalog, falling back to visually similar products");
-          matchedResults = [...productsToSearch].sort(() => 0.5 - Math.random()).slice(0, 3);
+        // If no mapping found, use the longest meaningful word from predictions
+        if (!searchKeyword) {
+          searchKeyword = allWords.sort((a, b) => b.length - a.length)[0] || predictions[0].className;
         }
       }
 
-      // Format results with a match score
-      const finalResults = matchedResults.map(p => ({
-        ...p,
-        matchScore: Math.floor(Math.random() * (99 - 80 + 1)) + 80 // Mock high match score
-      }));
+      console.log('Image search navigating with keyword:', searchKeyword);
 
-      // Send the client-side calculated results back up to App.jsx
-      if (onSearchResults) {
-        onSearchResults(finalResults.slice(0, 3)); // Return top 3 matches
+      setIsSearching(false);
+      if (imagePreview) {
+        URL.revokeObjectURL(imagePreview);
+        setImagePreview(null);
+      }
+      onClose();
+
+      // Navigate to SearchPage with the AI prediction as query
+      if (searchKeyword) {
+        navigate('/search.html?q=' + encodeURIComponent(searchKeyword));
       }
 
     } catch (err) {
       console.warn("Client-side Vision Analysis failed...", err);
-      // Fallback logic to show some search products anyway 
-      // but App.jsx uses searchResults state so we will simulate an empty fetch timeout
-      await new Promise(r => setTimeout(r, 2000));
-      console.log("AI Vision Analysis module offline. Evaluated locally via cache.");
-    } finally {
       setIsSearching(false);
       if (imagePreview) {
         URL.revokeObjectURL(imagePreview);
