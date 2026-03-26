@@ -4,7 +4,7 @@ import { supabase } from '../lib/supabaseClient';
 import { 
   ShieldCheck, Users, PackageSearch, LayoutDashboard, 
   Settings, LogOut, CheckCircle, XCircle, Search, User,
-  ShoppingCart, Trash2
+  ShoppingCart, Trash2, Brain, Plus, X, Zap, AlertTriangle
 } from 'lucide-react';
 import './RetailerDashboard.css';
 
@@ -24,6 +24,16 @@ export default function AdminDashboard({ session }) {
   const [pendingProducts, setPendingProducts] = useState([]);
   const [allProducts, setAllProducts] = useState([]);
   const [orders, setOrders] = useState([]);
+
+  // AI Product Management State
+  const [bannedKeywords, setBannedKeywords] = useState(() => {
+    const saved = localStorage.getItem('buywise_banned_keywords');
+    return saved ? JSON.parse(saved) : ['illegal', 'counterfeit', 'fake', 'drugs', 'weapon'];
+  });
+  const [newKeyword, setNewKeyword] = useState('');
+  const [scanResults, setScanResults] = useState([]);
+  const [isScanning, setIsScanning] = useState(false);
+  const [lastScanTime, setLastScanTime] = useState(null);
 
   // Helper to get retailer info
   const getRetailerEmail = (retailerId) => {
@@ -154,6 +164,82 @@ export default function AdminDashboard({ session }) {
     }
   };
 
+  // ─── AI Keyword Management ───
+  const addKeyword = () => {
+    const kw = newKeyword.trim().toLowerCase();
+    if (kw && !bannedKeywords.includes(kw)) {
+      const updated = [...bannedKeywords, kw];
+      setBannedKeywords(updated);
+      localStorage.setItem('buywise_banned_keywords', JSON.stringify(updated));
+    }
+    setNewKeyword('');
+  };
+
+  const removeKeyword = (kw) => {
+    const updated = bannedKeywords.filter(k => k !== kw);
+    setBannedKeywords(updated);
+    localStorage.setItem('buywise_banned_keywords', JSON.stringify(updated));
+  };
+
+  const runAIScan = async () => {
+    setIsScanning(true);
+    setScanResults([]);
+
+    // Fetch all products fresh
+    const { data: products, error } = await supabase
+      .from('products')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('AI Scan fetch error:', error);
+      setIsScanning(false);
+      return;
+    }
+
+    const flagged = [];
+    let rejectedCount = 0;
+
+    for (const product of products) {
+      const text = `${product.name || ''} ${product.description || ''} ${product.category || ''}`.toLowerCase();
+      const matchedKeywords = bannedKeywords.filter(kw => text.includes(kw));
+
+      if (matchedKeywords.length > 0) {
+        flagged.push({ ...product, matchedKeywords });
+
+        // Auto-reject if currently approved or pending
+        if (product.status !== 'rejected') {
+          const { error: updateError } = await supabase
+            .from('products')
+            .update({ status: 'rejected', ai_flagged: true })
+            .eq('id', product.id);
+          
+          if (!updateError) rejectedCount++;
+        }
+      }
+    }
+
+    setScanResults(flagged);
+    setLastScanTime(new Date().toLocaleTimeString());
+    setIsScanning(false);
+
+    // Refresh the products list
+    setAllProducts(products.map(p => {
+      const match = flagged.find(f => f.id === p.id);
+      if (match && p.status !== 'rejected') return { ...p, status: 'rejected', ai_flagged: true };
+      return p;
+    }));
+    setPendingProducts(prev => prev.filter(p => !flagged.find(f => f.id === p.id)));
+
+    if (rejectedCount > 0) {
+      alert(`AI Scan Complete: ${flagged.length} product(s) flagged, ${rejectedCount} auto-rejected.`);
+    } else if (flagged.length > 0) {
+      alert(`AI Scan Complete: ${flagged.length} product(s) flagged (already rejected).`);
+    } else {
+      alert('AI Scan Complete: No suspicious products found. Your catalog is clean! ✅');
+    }
+  };
+
   const handleSignOut = async () => {
     await supabase.auth.signOut();
     navigate('/');
@@ -189,6 +275,9 @@ export default function AdminDashboard({ session }) {
               </span>
             )}
           </button>
+          <button className={`nav-item ${activeTab === 'ai' ? 'active' : ''}`} onClick={() => setActiveTab('ai')}>
+            <Brain size={20} /> AI Product Mgt
+          </button>
           <div style={{ flex: 1 }}></div>
           <button className="nav-item logout" onClick={handleSignOut} style={{ marginTop: 'auto' }}>
             <LogOut size={20} /> Log out
@@ -204,6 +293,7 @@ export default function AdminDashboard({ session }) {
             {activeTab === 'retailers' && 'Retailer Management'}
             {activeTab === 'orders' && 'Order Management'}
             {activeTab === 'products' && 'Product Management & Moderation'}
+            {activeTab === 'ai' && 'AI Product Management'}
           </h1>
           <div className="header-actions">
             <Search className="header-icon" size={20} />
@@ -309,13 +399,15 @@ export default function AdminDashboard({ session }) {
                         <td>{new Date(o.created_at).toLocaleDateString()}</td>
                         <td>
                           <span style={{
-                            background: o.status === 'Processing' ? 'rgba(234, 179, 8, 0.1)' : 'rgba(16, 185, 129, 0.1)', 
-                            color: o.status === 'Processing' ? '#eab308' : '#10b981', 
+                            background: (o.status === 'Payment Successful' || o.status === 'Delivered') ? 'rgba(16, 185, 129, 0.1)' : 
+                                         o.status === 'Processing' ? 'rgba(234, 179, 8, 0.1)' : 'rgba(148, 163, 184, 0.1)', 
+                            color: (o.status === 'Payment Successful' || o.status === 'Delivered') ? '#10b981' : 
+                                   o.status === 'Processing' ? '#eab308' : '#94a3b8', 
                             padding:'4px 8px', 
                             borderRadius:'6px', 
                             fontSize:'0.75rem'
                           }}>
-                            {o.status}
+                            {(o.status === 'Payment Successful' || o.status === 'Delivered') ? '✅ Payment Successful' : o.status}
                           </span>
                         </td>
                       </tr>
@@ -538,6 +630,163 @@ export default function AdminDashboard({ session }) {
                 </div>
              </div>
 
+          </div>
+        )}
+
+        {/* AI PRODUCT MANAGEMENT TAB */}
+        {activeTab === 'ai' && (
+          <div className="dashboard-content">
+            {/* Keyword Manager */}
+            <div className="dashboard-widget glass-panel">
+              <div className="widget-title" style={{ marginBottom: '1rem' }}>
+                <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <Brain size={20} /> Banned Keywords
+                </span>
+                <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>{bannedKeywords.length} active</span>
+              </div>
+              <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginBottom: '1rem' }}>
+                Products containing these keywords in their name, description, or category will be automatically rejected during a scan.
+              </p>
+
+              {/* Add keyword input */}
+              <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem' }}>
+                <input
+                  type="text"
+                  value={newKeyword}
+                  onChange={(e) => setNewKeyword(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && addKeyword()}
+                  placeholder="Enter a keyword (e.g., 'weapon', 'replica')..."
+                  style={{
+                    flex: 1, padding: '0.7rem 1rem', borderRadius: '8px',
+                    border: '1px solid var(--border-color)', background: 'var(--bg-surface)',
+                    color: 'var(--text-main)', fontSize: '0.9rem', outline: 'none'
+                  }}
+                />
+                <button
+                  onClick={addKeyword}
+                  style={{
+                    background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
+                    color: '#fff', border: 'none', borderRadius: '8px',
+                    padding: '0.7rem 1.2rem', cursor: 'pointer', display: 'flex',
+                    alignItems: 'center', gap: '0.3rem', fontWeight: 600, fontSize: '0.9rem'
+                  }}
+                >
+                  <Plus size={16} /> Add
+                </button>
+              </div>
+
+              {/* Keywords list */}
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+                {bannedKeywords.map(kw => (
+                  <span key={kw} style={{
+                    background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444',
+                    padding: '6px 12px', borderRadius: '20px', fontSize: '0.85rem',
+                    display: 'flex', alignItems: 'center', gap: '0.4rem',
+                    border: '1px solid rgba(239, 68, 68, 0.2)'
+                  }}>
+                    {kw}
+                    <button onClick={() => removeKeyword(kw)} style={{
+                      background: 'none', border: 'none', color: '#ef4444',
+                      cursor: 'pointer', padding: '0', display: 'flex'
+                    }}>
+                      <X size={14} />
+                    </button>
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            {/* Scan Button */}
+            <div className="dashboard-widget glass-panel" style={{ textAlign: 'center', padding: '2rem' }}>
+              <button
+                onClick={runAIScan}
+                disabled={isScanning}
+                style={{
+                  background: isScanning
+                    ? 'rgba(148, 163, 184, 0.2)'
+                    : 'linear-gradient(135deg, #6366f1, #ec4899)',
+                  color: '#fff', border: 'none', borderRadius: '12px',
+                  padding: '1rem 2.5rem', cursor: isScanning ? 'not-allowed' : 'pointer',
+                  fontSize: '1.1rem', fontWeight: 700, display: 'inline-flex',
+                  alignItems: 'center', gap: '0.5rem',
+                  boxShadow: isScanning ? 'none' : '0 4px 15px rgba(99, 102, 241, 0.3)',
+                  transition: 'all 0.3s ease'
+                }}
+              >
+                <Zap size={20} />
+                {isScanning ? 'Scanning Products...' : 'Scan & Auto-Reject'}
+              </button>
+              <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginTop: '0.75rem' }}>
+                {lastScanTime
+                  ? `Last scan: ${lastScanTime} · ${scanResults.length} flagged`
+                  : 'Click to scan all products against your banned keywords'}
+              </p>
+            </div>
+
+            {/* Scan Results */}
+            {scanResults.length > 0 && (
+              <div className="dashboard-widget glass-panel">
+                <div className="widget-title" style={{ marginBottom: '1rem' }}>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#ef4444' }}>
+                    <AlertTriangle size={20} /> Flagged Products ({scanResults.length})
+                  </span>
+                </div>
+                <div className="products-table-wrapper">
+                  <table className="products-table">
+                    <thead>
+                      <tr>
+                        <th>Product</th>
+                        <th>Category</th>
+                        <th>Retailer</th>
+                        <th>Matched Keywords</th>
+                        <th>Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {scanResults.map(p => (
+                        <tr key={p.id}>
+                          <td>
+                            <div className="product-cell">
+                              <div className="p-image" style={{ padding: p.image && p.image.includes('http') ? '0' : '2px' }}>
+                                {p.image && p.image.includes('http')
+                                  ? <img src={p.image} alt={p.name} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '4px' }} />
+                                  : '📦'}
+                              </div>
+                              <span style={{ fontWeight: 'bold' }}>{p.name}</span>
+                            </div>
+                          </td>
+                          <td>{p.category}</td>
+                          <td style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                            {getRetailerEmail(p.retailer_id)}
+                          </td>
+                          <td>
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.3rem' }}>
+                              {p.matchedKeywords.map(kw => (
+                                <span key={kw} style={{
+                                  background: 'rgba(239, 68, 68, 0.15)', color: '#ef4444',
+                                  padding: '2px 8px', borderRadius: '10px', fontSize: '0.75rem',
+                                  fontWeight: 600
+                                }}>
+                                  {kw}
+                                </span>
+                              ))}
+                            </div>
+                          </td>
+                          <td>
+                            <span style={{
+                              background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444',
+                              padding: '4px 8px', borderRadius: '6px', fontSize: '0.75rem'
+                            }}>
+                              🚫 Rejected
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
           </div>
         )}
 

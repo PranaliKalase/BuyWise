@@ -40,9 +40,9 @@ export default function Auth({ onAuthSuccess }) {
         } else if (data?.session) {
           setSuccessMsg("Registration successful! Redirecting...");
           setTimeout(() => {
-             if (onAuthSuccess) onAuthSuccess(data.session.user);
-             const userRole = data.session.user.user_metadata?.role || role;
-             navigate(userRole === 'retailer' ? '/retailer-dashboard' : userRole === 'admin' ? '/admin-dashboard' : '/');
+            if (onAuthSuccess) onAuthSuccess(data.session.user);
+            const userRole = data.session.user.user_metadata?.role || role;
+            navigate(userRole === 'retailer' ? '/retailer-dashboard' : userRole === 'admin' ? '/admin-dashboard' : '/');
           }, 1200);
         }
       } else {
@@ -61,13 +61,13 @@ export default function Auth({ onAuthSuccess }) {
             .select('role')
             .eq('id', data.session.user.id)
             .single();
-          
+
           const finalRole = userData?.role || data.session.user.user_metadata?.role || 'customer';
-          
+
           setSuccessMsg("Sign in successful! Redirecting...");
           setTimeout(() => {
-             if (onAuthSuccess) onAuthSuccess(data.session.user);
-             navigate(finalRole === 'retailer' ? '/retailer-dashboard' : finalRole === 'admin' ? '/admin-dashboard' : '/');
+            if (onAuthSuccess) onAuthSuccess(data.session.user);
+            navigate(finalRole === 'retailer' ? '/retailer-dashboard' : finalRole === 'admin' ? '/admin-dashboard' : '/');
           }, 1200);
         }
       }
@@ -159,16 +159,7 @@ export default function Auth({ onAuthSuccess }) {
                   />
                   <span>Retailer 🏬</span>
                 </label>
-                <label className={`role-option ${role === 'admin' ? 'selected' : ''}`}>
-                  <input
-                    type="radio"
-                    name="role"
-                    value="admin"
-                    checked={role === 'admin'}
-                    onChange={() => setRole('admin')}
-                  />
-                  <span>Admin 🛡️</span>
-                </label>
+
               </div>
             </div>
           )}
