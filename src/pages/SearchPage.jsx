@@ -120,31 +120,32 @@ export default function SearchPage({ session }) {
       let queryBase = supabase.from('products').select('*').neq('id', product.id);
       
       const targetName = (product.name || '').toLowerCase();
-      const nameWords = targetName.split(/[^a-z0-9]+/).filter(w => w.length > 2);
       
-      // Extract exact noun type 
-      const isShoe = targetName.includes('shoe') || targetName.includes('sneaker') || targetName.includes('boot');
-      const isShirt = targetName.includes('shirt') || targetName.includes('hoodie');
-      const isPant = targetName.includes('pant') || targetName.includes('jeans') || targetName.includes('trouser');
+      // Strict Type Identification
+      const isShoe = targetName.includes('shoe') || targetName.includes('sneaker') || targetName.includes('boot') || targetName.includes('sandal') || targetName.includes('footwear');
+      const isDress = targetName.includes('dress') || targetName.includes('gown') || targetName.includes('frock');
+      const isShirt = targetName.includes('shirt') || targetName.includes('hoodie') || targetName.includes('tshirt') || targetName.includes(' top ');
+      const isPant = targetName.includes('pant') || targetName.includes('jeans') || targetName.includes('trouser') || targetName.includes('bottom');
       const isWatch = targetName.includes('watch') || targetName.includes('smartwatch');
 
       if (isShoe) {
-         queryBase = queryBase.or('name.ilike.%shoe%,name.ilike.%sneaker%,name.ilike.%boot%');
+         queryBase = queryBase.or('name.ilike.%shoe%,name.ilike.%sneaker%,name.ilike.%boot%,name.ilike.%sandal%,name.ilike.%footwear%');
+      } else if (isDress) {
+         queryBase = queryBase.or('name.ilike.%dress%,name.ilike.%gown%,name.ilike.%frock%');
       } else if (isShirt) {
-         queryBase = queryBase.or('name.ilike.%shirt%,name.ilike.%hoodie%');
+         queryBase = queryBase.or('name.ilike.%shirt%,name.ilike.%hoodie%,name.ilike.%tshirt%,name.ilike.% top %');
       } else if (isPant) {
-         queryBase = queryBase.or('name.ilike.%pant%,name.ilike.%jeans%,name.ilike.%trouser%');
+         queryBase = queryBase.or('name.ilike.%pant%,name.ilike.%jeans%,name.ilike.%trouser%,name.ilike.%bottom%');
       } else if (isWatch) {
          queryBase = queryBase.ilike('name', '%watch%');
-      } else if (nameWords.length > 0) {
-         // Dynamic Fallback: For things like 'Piano' or 'Perfume', forcefully limit results to items 
-         // that share at least one significant identifying word in their names natively
-         const orConditions = nameWords.map(w => `name.ilike.%${w}%`).join(',');
-         queryBase = queryBase.or(orConditions);
       } else {
-         // If absolutely no valid name words exist to match, we can try matching strict categories. 
-         // But if no category exists, we abort the compare to prevent random weird items (like Piano with Perfume)
-         if (product.category) {
+         // Fallback: Use the last identified word of the title as the "noun"
+         const nameWords = targetName.split(/[^a-z0-9]+/).filter(w => w.length > 2);
+         const lastWord = nameWords.length > 0 ? nameWords[nameWords.length - 1] : null;
+
+         if (lastWord && !['new', 'sale', 'the', 'and'].includes(lastWord)) {
+            queryBase = queryBase.ilike('name', `%${lastWord}%`);
+         } else if (product.category) {
             queryBase = queryBase.eq('category', product.category);
          } else {
             setComparisonList([product]);
