@@ -101,7 +101,31 @@ export default function SearchPage({ session }) {
           }
         }
 
-        setProducts(data || []);
+        let finalProducts = data || [];
+
+        // Strict Category Filter (Match AI Assistant logic)
+        const lowerQ = cleanQuery.toLowerCase();
+        const mentionsShoes = lowerQ.includes('shoe') || lowerQ.includes('sneaker') || lowerQ.includes('boot') || lowerQ.includes('footwear') || lowerQ.includes('sandal');
+        const mentionsClothing = lowerQ.includes('cloth') || lowerQ.includes('shirt') || lowerQ.includes('dress') || lowerQ.includes('hoodie') || lowerQ.includes('pant');
+
+        if (mentionsShoes && !mentionsClothing) {
+           finalProducts = finalProducts.filter(m => {
+              const n = (m.name || '').toLowerCase();
+              const c = (m.category || '').toLowerCase();
+              const d = (m.description || '').toLowerCase();
+              return n.includes('shoe') || n.includes('sneaker') || n.includes('boot') || n.includes('footwear') || n.includes('sandal') || 
+                     c.includes('shoe') || c.includes('footwear') || d.includes('shoe') || d.includes('sneaker');
+           });
+        } else if (mentionsClothing && !mentionsShoes) {
+           finalProducts = finalProducts.filter(m => {
+              const n = (m.name || '').toLowerCase();
+              const c = (m.category || '').toLowerCase();
+              return n.includes('shirt') || n.includes('dress') || n.includes('pant') || n.includes('hoodie') || n.includes('top') || n.includes('tshirt') || n.includes('jeans') ||
+                     c.includes('apparel') || c.includes('clothing');
+           });
+        }
+
+        setProducts(finalProducts);
 
       } catch (err) {
         console.error("Error fetching from Supabase:", err);
