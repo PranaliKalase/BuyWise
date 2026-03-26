@@ -22,6 +22,7 @@ export default function RetailerDashboard({ session }) {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('dashboard');
+  const [isRetailer, setIsRetailer] = useState(null);
   
   // Real DB State
   const [ordersList, setOrdersList] = useState([]);
@@ -56,11 +57,25 @@ export default function RetailerDashboard({ session }) {
   useEffect(() => {
     const fetchDashboardData = async () => {
       if (!session) {
-        setLoading(false);
+        navigate('/auth');
         return;
       }
 
       try {
+        // Verify role before fetching anything else
+        const { data: userData } = await supabase
+          .from('users')
+          .select('role')
+          .eq('id', session.user.id)
+          .single();
+          
+        const role = userData?.role || session.user.user_metadata?.role;
+        if (role !== 'retailer') {
+          navigate('/');
+          return;
+        }
+        setIsRetailer(true);
+
         // Fetch products owned by this retailer
         const { data: products, error } = await supabase
           .from('products')
@@ -283,6 +298,7 @@ export default function RetailerDashboard({ session }) {
     navigate('/');
   };
 
+  if (isRetailer !== true) return null;
   if (loading) return null;
 
   return (

@@ -16,6 +16,12 @@ create table if not exists products (
 -- Safely add the columns if the table already existed
 alter table products add column if not exists in_stock boolean default true;
 alter table products add column if not exists retailer_id uuid references auth.users(id);
+alter table products add column if not exists status text default 'pending' check (status in ('pending', 'approved', 'rejected'));
+alter table products add column if not exists ai_flagged boolean default false;
+alter table products add column if not exists ai_confidence numeric default 0.0;
+
+-- Existing products should be approved by default
+update products set status = 'approved' where status = 'pending';
 
 -- Insert initial mockup data so the store isn't empty (only if table is empty)
 insert into products (name, description, price, rating, reviews, category, image)
@@ -35,16 +41,41 @@ alter table products enable row level security;
 
 -- Drop existing policies if they exist to allow re-runs
 drop policy if exists "Products are viewable by everyone." on products;
-drop policy if exists "Products are insertable by everyone." on products;
+drop policy if exists "Retailers can view their own products" on products;
 drop policy if exists "Retailers can insert their own products." on products;
 drop policy if exists "Retailers can update their own products." on products;
 drop policy if exists "Retailers can delete their own products." on products;
+drop policy if exists "Admins can manage products" on products;
 
 -- Create policies for the products table
-create policy "Products are viewable by everyone." on products for select using (true);
+-- Customers can see approved products
+create policy "Products are viewable by everyone." on products for select using (status = 'approved');
+
+-- Retailers can view their own products and insert/update/delete them
+create policy "Retailers can view their own products" on products for select using (auth.uid() = retailer_id);
 create policy "Retailers can insert their own products." on products for insert with check (auth.uid() = retailer_id);
 create policy "Retailers can update their own products." on products for update using (auth.uid() = retailer_id);
 create policy "Retailers can delete their own products." on products for delete using (auth.uid() = retailer_id);
+
+create or replace function public.is_admin()
+returns boolean as $$
+begin
+  return exists (
+    select 1 from public.users 
+    where id = auth.uid() 
+    and role = 'admin'
+  );
+end;
+$$ language plpgsql security definer;
+
+-- Admins can do anything with products
+create policy "Admins can manage products" on products for all using (
+  public.is_admin()
+);
+drop policy if exists "Admins can delete products" on products;
+create policy "Admins can delete products" on products for delete using (
+  public.is_admin()
+);
 
 -- Create a storage bucket for product images named 'product-images'
 insert into storage.buckets (id, name, public) 
@@ -66,15 +97,32 @@ with check ( bucket_id = 'product-images' );
 -- Create a table for users to store roles
 create table if not exists public.users (
   id uuid references auth.users not null primary key,
-  role text default 'retailer' check (role in ('customer', 'retailer')),
+  role text default 'retailer',
+  email text,
   created_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
+
+-- Update check constraint to allow 'admin'
+alter table public.users drop constraint if exists users_role_check;
+alter table public.users add constraint users_role_check check (role in ('customer', 'retailer', 'admin'));
 
 -- Enable RLS on users table
 alter table public.users enable row level security;
 
-drop policy if exists "Users can read own profile" on public.users;
-drop policy if exists "Users can update own profile" on public.users;
+-- Drop ALL existing policies on public.users to clear any infinite recursion bugs
+DO $$
+DECLARE
+    pol record;
+BEGIN
+    FOR pol IN
+        SELECT policyname
+        FROM pg_policies
+        WHERE schemaname = 'public' AND tablename = 'users'
+    LOOP
+        EXECUTE format('DROP POLICY IF EXISTS %I ON public.users', pol.policyname);
+    END LOOP;
+END
+$$;
 
 -- Allow users to read their own profile
 create policy "Users can read own profile" on public.users
@@ -84,14 +132,21 @@ create policy "Users can read own profile" on public.users
 create policy "Users can update own profile" on public.users
   for update using (auth.uid() = id);
 
+-- Allow Admins to select all users
+create policy "Admins can view all users" on public.users
+  for select using (
+    public.is_admin()
+  );
+
 -- Trigger to create a user profile when a new user signs up
 create or replace function public.handle_new_user()
 returns trigger as $$
 begin
-  insert into public.users (id, role)
+  insert into public.users (id, role, email)
   values (
     new.id, 
-    coalesce(new.raw_user_meta_data->>'role', 'customer')
+    coalesce(new.raw_user_meta_data->>'role', 'customer'),
+    new.email
   );
   return new;
 end;
@@ -103,6 +158,28 @@ drop trigger if exists on_auth_user_created on auth.users;
 create trigger on_auth_user_created
   after insert on auth.users
   for each row execute procedure public.handle_new_user();
+
+-- RPC function to allow Admins to safely delete any product bypassing RLS issues
+create or replace function public.delete_product_as_admin(target_product_id uuid)
+returns boolean as $$
+begin
+  -- Use the existing is_admin security definer function to check permissions
+  if not public.is_admin() then
+    raise exception 'Unauthorized: Only admins can perform this action.';
+  end if;
+
+  -- Delete the product (cascading into flash_sales due to our FK update)
+  delete from public.products where id = target_product_id;
+  
+  return true;
+end;
+$$ language plpgsql security definer;
+
+-- Ensure the function is accessible to the Supabase API
+GRANT EXECUTE ON FUNCTION public.delete_product_as_admin(uuid) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.delete_product_as_admin(uuid) TO service_role;
+GRANT EXECUTE ON FUNCTION public.is_admin() TO authenticated;
+GRANT EXECUTE ON FUNCTION public.is_admin() TO service_role;
 
 
 -- ==========================================
@@ -134,7 +211,7 @@ CREATE TABLE if not exists flash_sales (
   retailer_id uuid references auth.users(id),
   title text not null,
   description text,
-  product_id uuid references products(id),
+  product_id uuid references products(id) on delete cascade,
   discount_percentage numeric default 0,
   image_url text,
   valid_until timestamp with time zone,
@@ -142,7 +219,9 @@ CREATE TABLE if not exists flash_sales (
 );
 
 -- Ensure existing 'flash_sales' table gets the new column!
-ALTER TABLE if exists flash_sales ADD COLUMN if not exists product_id uuid references products(id);
+ALTER TABLE if exists flash_sales DROP CONSTRAINT if exists flash_sales_product_id_fkey;
+ALTER TABLE if exists flash_sales ADD COLUMN if not exists product_id uuid references products(id) on delete cascade;
+ALTER TABLE if exists flash_sales ADD CONSTRAINT flash_sales_product_id_fkey FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE;
 
 -- Setup basic RLS (Row Level Security) policies so the frontend can read/write
 ALTER TABLE orders ENABLE ROW LEVEL SECURITY;
@@ -155,6 +234,7 @@ drop policy if exists "Retailers can update their own flash sales" on flash_sale
 drop policy if exists "Retailers can delete their own flash sales" on flash_sales;
 
 drop policy if exists "Retailers can view their orders" on orders;
+drop policy if exists "Admins can view all orders" on orders;
 drop policy if exists "Anyone can insert orders" on orders;
 
 -- Allow public read access to flash sales (so customers can see them on the Storefront!)
@@ -168,5 +248,11 @@ CREATE POLICY "Retailers can delete their own flash sales" ON flash_sales FOR DE
 -- Allow retailers to see their own orders
 CREATE POLICY "Retailers can view their orders" ON orders FOR SELECT USING (auth.uid() = retailer_id);
 
+-- Admins can view all orders
+CREATE POLICY "Admins can view all orders" ON orders FOR SELECT USING (public.is_admin());
+
 -- Normally, customers check out securely, but for demonstration, let's allow ANY insert into orders
 CREATE POLICY "Anyone can insert orders" ON orders FOR INSERT WITH CHECK (true);
+
+-- Refresh the PostgREST schema cache so the API recognizes novel columns instantly
+NOTIFY pgrst, 'reload schema';

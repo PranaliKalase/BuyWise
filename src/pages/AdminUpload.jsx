@@ -68,9 +68,33 @@ export default function AdminUpload({ session }) {
         .from('product-images')
         .getPublicUrl(filePath);
 
-      setStatusMsg("Image uploaded. Saving product details...");
+      // 3. AI Moderation Check
+      setStatusMsg("Running AI Moderation check...");
+      let isFlagged = false;
+      let aiConfidence = 0.0;
+      
+      try {
+        const aiResponse = await fetch('http://localhost:8000/api/moderate/product', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+             name: name,
+             description: description,
+             category: category
+          })
+        });
+        const aiResult = await aiResponse.json();
+        if (aiResult.status === 'success') {
+           isFlagged = aiResult.ai_flagged;
+           aiConfidence = aiResult.confidence;
+        }
+      } catch (aiErr) {
+        console.warn("AI Moderation endpoint unreachable, defaulting to safe.", aiErr);
+      }
 
-      // 3. Insert Product into Supabase Database
+      setStatusMsg("Saving product details...");
+
+      // 4. Insert Product into Supabase Database
       const { error: dbError } = await supabase.from('products').insert([
         {
           name,
@@ -80,7 +104,10 @@ export default function AdminUpload({ session }) {
           image: publicUrl,
           rating: 0.0, // Default new product rating
           reviews: 0,
-          retailer_id: session.user.id
+          retailer_id: session.user.id,
+          status: 'pending',
+          ai_flagged: isFlagged,
+          ai_confidence: aiConfidence
         }
       ]);
 

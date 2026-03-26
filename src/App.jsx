@@ -12,6 +12,7 @@ import Auth from './pages/Auth'
 import AdminUpload from './pages/AdminUpload'
 import ManageProducts from './pages/ManageProducts'
 import RetailerDashboard from './pages/RetailerDashboard'
+import AdminDashboard from './pages/AdminDashboard'
 import SearchPage from './pages/SearchPage'
 import FavoritesPage from './pages/FavoritesPage'
 import Checkout from './pages/Checkout'
@@ -50,6 +51,7 @@ function App() {
             <Route path="/upload" element={<AdminUpload session={session} />} />
             <Route path="/manage" element={<ManageProducts session={session} />} />
             <Route path="/retailer-dashboard" element={<RetailerDashboard session={session} />} />
+            <Route path="/admin-dashboard" element={<AdminDashboard session={session} />} />
           </Routes>
           <Cart />
         </div>
@@ -72,6 +74,7 @@ function Home({ session }) {
         const { data, error } = await supabase
           .from('products')
           .select('*')
+          .eq('status', 'approved')
           .order('created_at', { ascending: false });
 
         if (error) {

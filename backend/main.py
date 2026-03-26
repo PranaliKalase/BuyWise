@@ -1,5 +1,6 @@
 from fastapi import FastAPI, File, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
 import uvicorn
 
 app = FastAPI()
@@ -117,6 +118,49 @@ def get_recommendations(product_id: str):
             r['matchScore'] = random.randint(60, 95)
         results.sort(key=lambda x: x['matchScore'], reverse=True)
         return {"status": "success", "engine": "Mock", "results": results[:3]}
+
+class ModerationRequest(BaseModel):
+    name: str
+    description: str
+    category: str
+
+@app.post("/api/moderate/product")
+def moderate_product(req: ModerationRequest):
+    # Corpus of suspicious or illegal concepts
+    suspicious_terms = [
+        "weapon", "gun", "knife", "drugs", "narcotics", "fake", 
+        "counterfeit", "replica", "poison", "stolen", "hack", "illegal", "pirated"
+    ]
+    
+    text_to_analyze = f"{req.name} {req.description} {req.category}".lower()
+    
+    ai_flagged = False
+    confidence = 0.0
+    
+    if HAS_SKLEARN:
+        corpus = [" ".join(suspicious_terms)]
+        vectorizer = TfidfVectorizer()
+        tfidf_matrix = vectorizer.fit_transform(corpus + [text_to_analyze])
+        similarity = cosine_similarity(tfidf_matrix[0:1], tfidf_matrix[1:2])[0][0]
+        
+        confidence = float(similarity)
+        # 0.05 is a low threshold just to easily demonstrate the feature with short texts
+        if confidence > 0.05:
+            ai_flagged = True
+    else:
+        # Fallback keyword detection
+        for term in suspicious_terms:
+            if term in text_to_analyze:
+                ai_flagged = True
+                confidence = 0.95
+                break
+
+    return {
+        "status": "success",
+        "ai_flagged": ai_flagged,
+        "confidence": round(confidence, 2),
+        "engine": "TF-IDF Moderation" if HAS_SKLEARN else "Keyword Moderation"
+    }
 
 if __name__ == "__main__":
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)

@@ -42,7 +42,7 @@ export default function Auth({ onAuthSuccess }) {
           setTimeout(() => {
              if (onAuthSuccess) onAuthSuccess(data.session.user);
              const userRole = data.session.user.user_metadata?.role || role;
-             navigate(userRole === 'retailer' ? '/retailer-dashboard' : '/');
+             navigate(userRole === 'retailer' ? '/retailer-dashboard' : userRole === 'admin' ? '/admin-dashboard' : '/');
           }, 1200);
         }
       } else {
@@ -67,7 +67,7 @@ export default function Auth({ onAuthSuccess }) {
           setSuccessMsg("Sign in successful! Redirecting...");
           setTimeout(() => {
              if (onAuthSuccess) onAuthSuccess(data.session.user);
-             navigate(finalRole === 'retailer' ? '/retailer-dashboard' : '/');
+             navigate(finalRole === 'retailer' ? '/retailer-dashboard' : finalRole === 'admin' ? '/admin-dashboard' : '/');
           }, 1200);
         }
       }
@@ -158,6 +158,16 @@ export default function Auth({ onAuthSuccess }) {
                     onChange={() => setRole('retailer')}
                   />
                   <span>Retailer 🏬</span>
+                </label>
+                <label className={`role-option ${role === 'admin' ? 'selected' : ''}`}>
+                  <input
+                    type="radio"
+                    name="role"
+                    value="admin"
+                    checked={role === 'admin'}
+                    onChange={() => setRole('admin')}
+                  />
+                  <span>Admin 🛡️</span>
                 </label>
               </div>
             </div>
