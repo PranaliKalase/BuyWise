@@ -8,7 +8,6 @@ const CATEGORIES = [
   { name: "Home & Kitchen", img: "https://images.unsplash.com/photo-1556910103-1c02745aae4d?auto=format&fit=crop&w=150&q=80" },
   { name: "Kid's Fashion", img: "https://cdn.shopify.com/s/files/1/0623/4754/2777/collections/5DDB280A-7A1C-462D-BCA5-FEF3C7720085.png?v=1647237737" },
   { name: "Beauty & Health", img: "https://encrypted-tbn0.gstatic.com/shopping?q=tbn:ANd9GcSrTKeeWp6dG5al0ILI2KRbEpmPhjZJsAGDCdGmOafMbZT1jhFCs_eCVBI_eJjDGaLYmyAyoEQ-hrWVuzkJcDe_Jf_Ji_9a_jfZqr5wXFmsDPgCeX533anaVA" },
-  { name: "Automotives", img: "https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?auto=format&fit=crop&w=150&q=80" },
   { name: "Mobile Accessories", img: "https://m.media-amazon.com/images/I/61uOFBe4b3L._AC_UF1000,1000_QL80_.jpg" },
   { name: "Electronics", img: "https://images.unsplash.com/photo-1498049794561-7780e7231661?auto=format&fit=crop&w=150&q=80" },
   { name: "Sports & Fitness", img: "https://images.unsplash.com/photo-1517836357463-d25dfeac3438?auto=format&fit=crop&w=150&q=80" },
