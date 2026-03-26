@@ -29,7 +29,7 @@ export default function RetailerDashboard({ session }) {
   const [customersList, setCustomersList] = useState([]);
   const [allProductsList, setAllProductsList] = useState([]);
   const [flashSales, setFlashSales] = useState([]);
-  const [flashForm, setFlashForm] = useState({ title: '', description: '', product_id: '', discount_percentage: '', image_url: '', valid_until: '' });
+  const [flashForm, setFlashForm] = useState({ title: '', description: '', product_ids: [], discount_percentage: '', image_url: '', valid_until: '' });
   const [creatingFlash, setCreatingFlash] = useState(false);
   const [editingFlashId, setEditingFlashId] = useState(null);
 
@@ -208,7 +208,7 @@ export default function RetailerDashboard({ session }) {
         retailer_id: session.user.id,
         title: flashForm.title,
         description: flashForm.description,
-        product_id: flashForm.product_id || null,
+        product_ids: flashForm.product_ids || [],
         discount_percentage: Number(flashForm.discount_percentage) || 0,
         image_url: flashForm.image_url,
         valid_until: flashForm.valid_until ? new Date(flashForm.valid_until).toISOString() : null
@@ -233,7 +233,7 @@ export default function RetailerDashboard({ session }) {
         alert("Flash Sale event successfully published!");
       }
 
-      setFlashForm({ title: '', description: '', product_id: '', discount_percentage: '', image_url: '', valid_until: '' });
+      setFlashForm({ title: '', description: '', product_ids: [], discount_percentage: '', image_url: '', valid_until: '' });
       setEditingFlashId(null);
     } catch (err) {
       console.error(err);
@@ -247,7 +247,7 @@ export default function RetailerDashboard({ session }) {
     setFlashForm({
       title: event.title,
       description: event.description || '',
-      product_id: event.product_id || '',
+      product_ids: event.product_ids || (event.product_id ? [event.product_id] : []),
       discount_percentage: event.discount_percentage || '',
       image_url: event.image_url || '',
       valid_until: event.valid_until ? event.valid_until.split('T')[0] : ''
@@ -256,7 +256,7 @@ export default function RetailerDashboard({ session }) {
   };
 
   const handleCancelEditFlash = () => {
-    setFlashForm({ title: '', description: '', product_id: '', discount_percentage: '', image_url: '', valid_until: '' });
+    setFlashForm({ title: '', description: '', product_ids: [], discount_percentage: '', image_url: '', valid_until: '' });
     setEditingFlashId(null);
   };
 
@@ -712,13 +712,33 @@ export default function RetailerDashboard({ session }) {
                     <textarea value={flashForm.description} onChange={e => setFlashForm({...flashForm, description: e.target.value})} placeholder="Get ready for the biggest drop..." required style={{width:'100%', padding:'0.75rem', borderRadius:'8px', background:'rgba(128,128,128,0.1)', border:'1px solid rgba(128,128,128,0.2)', color:'var(--text-color)', marginTop:'0.3rem', minHeight:'80px'}} />
                   </div>
                   <div>
-                    <label style={{fontSize:'0.85rem', color:'var(--text-muted)'}}>Link to Product (Optional)</label>
-                    <select value={flashForm.product_id} onChange={e => setFlashForm({...flashForm, product_id: e.target.value})} style={{width:'100%', padding:'0.75rem', borderRadius:'8px', background:'rgba(128,128,128,0.1)', border:'1px solid rgba(128,128,128,0.2)', color:'var(--text-color)', marginTop:'0.3rem'}}>
-                      <option value="" style={{color:'#000'}}>-- None --</option>
-                      {allProductsList.map(p => (
-                        <option key={p.id} value={p.id} style={{color:'#000'}}>{p.name}</option>
-                      ))}
-                    </select>
+                    <label style={{fontSize:'0.85rem', color:'var(--text-muted)', display:'block', marginBottom:'0.5rem'}}>Select Products for Flash Sale</label>
+                    <div style={{
+                      maxHeight: '150px', 
+                      overflowY: 'auto', 
+                      background: 'rgba(128,128,128,0.1)', 
+                      borderRadius: '8px', 
+                      border: '1px solid rgba(128,128,128,0.2)',
+                      padding: '0.5rem'
+                    }}>
+                      {allProductsList.length > 0 ? allProductsList.map(p => (
+                        <label key={p.id} style={{display:'flex', alignItems:'center', gap:'10px', padding:'0.4rem', borderBottom:'1px solid rgba(128,128,128,0.05)', cursor:'pointer'}}>
+                          <input 
+                            type="checkbox" 
+                            checked={flashForm.product_ids.includes(p.id)} 
+                            onChange={e => {
+                              const newIds = e.target.checked 
+                                ? [...flashForm.product_ids, p.id] 
+                                : flashForm.product_ids.filter(id => id !== p.id);
+                              setFlashForm({...flashForm, product_ids: newIds});
+                            }}
+                          />
+                          <span style={{fontSize:'0.85rem', color:'var(--text-color)'}}>{p.name}</span>
+                        </label>
+                      )) : (
+                        <div style={{padding:'0.5rem', fontSize:'0.85rem', color:'var(--text-muted)'}}>No products found in your inventory.</div>
+                      )}
+                    </div>
                   </div>
                   <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:'1rem'}}>
                     <div>

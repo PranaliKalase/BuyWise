@@ -231,6 +231,7 @@ CREATE TABLE if not exists flash_sales (
 -- Ensure existing 'flash_sales' table gets the new column!
 ALTER TABLE if exists flash_sales DROP CONSTRAINT if exists flash_sales_product_id_fkey;
 ALTER TABLE if exists flash_sales ADD COLUMN if not exists product_id uuid references products(id) on delete cascade;
+ALTER TABLE if exists flash_sales ADD COLUMN if not exists product_ids uuid[] default '{}';
 ALTER TABLE if exists flash_sales ADD CONSTRAINT flash_sales_product_id_fkey FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE;
 
 -- Setup basic RLS (Row Level Security) policies so the frontend can read/write

@@ -26,7 +26,7 @@ export default function CategoryStrip() {
           <div 
             key={idx} 
             className="category-item" 
-            onClick={() => navigate(`/search.html?q=${encodeURIComponent(cat.name)}`)}
+            onClick={() => navigate(`/search.html?cat=${encodeURIComponent(cat.name)}`)}
           >
             <div className="category-image-wrapper">
               <img src={cat.img} alt={cat.name} className="category-image" loading="lazy" />

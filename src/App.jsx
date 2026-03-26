@@ -178,7 +178,16 @@ function Home({ session }) {
                     <h3 style={{ margin: 0, fontSize: '1.3rem', color: 'var(--text-color)' }}>{sale.title}</h3>
                     <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginTop: '0.5rem', lineHeight: '1.5' }}>{sale.description}</p>
                   </div>
-                  <button className="btn btn-primary" onClick={() => navigate('/search.html')} style={{ marginTop: 'auto', width: '100%' }}>
+                  <button 
+                    className="btn btn-primary" 
+                    onClick={() => {
+                      const ids = sale.product_ids && sale.product_ids.length > 0 
+                        ? sale.product_ids.join(',') 
+                        : (sale.product_id || '');
+                      navigate(`/search.html?pids=${encodeURIComponent(ids)}&event=${encodeURIComponent(sale.title)}`);
+                    }} 
+                    style={{ marginTop: 'auto', width: '100%' }}
+                  >
                     Shop Event
                   </button>
                 </div>

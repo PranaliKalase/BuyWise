@@ -8,6 +8,9 @@ import './SearchPage.css';
 export default function SearchPage({ session }) {
   const [searchParams] = useSearchParams();
   const query = searchParams.get('q') || '';
+  const category = searchParams.get('cat') || '';
+  const pids = searchParams.get('pids') || '';
+  const eventName = searchParams.get('event') || '';
   const navigate = useNavigate();
 
   const [products, setProducts] = useState([]);
@@ -25,6 +28,37 @@ export default function SearchPage({ session }) {
       setError(null);
       
       try {
+        // Handle product list by IDs (Flash Sales)
+        if (pids) {
+          const idList = pids.split(',').filter(id => id.length > 0);
+          if (idList.length > 0) {
+            const { data, error: dbError } = await supabase
+              .from('products')
+              .select('*')
+              .in('id', idList)
+              .eq('status', 'approved');
+
+            if (dbError) throw dbError;
+            setProducts(data || []);
+            setLoading(false);
+            return;
+          }
+        }
+
+        // If category filter is used (from CategoryStrip), do exact category match
+        if (category) {
+          const { data, error: dbError } = await supabase
+            .from('products')
+            .select('*')
+            .eq('status', 'approved')
+            .ilike('category', category);
+
+          if (dbError) throw dbError;
+          setProducts(data || []);
+          setLoading(false);
+          return;
+        }
+
         if (!query.trim()) {
           setProducts([]);
           setLoading(false);
@@ -142,7 +176,7 @@ export default function SearchPage({ session }) {
       
       <main className="search-main container">
         <div className="search-header-text">
-          <h2>Search Results for "{query}"</h2>
+          <h2>{eventName ? `${eventName}` : (category ? `${category}` : (query ? `Search Results for "${query}"` : 'All Products'))}</h2>
           {!loading && !error && (
             <span className="results-count">{products.length} products found</span>
           )}
