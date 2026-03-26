@@ -154,12 +154,9 @@ export default function ShoppingAssistant() {
        matches = matches.filter(m => {
           const cat = (m.category || '').toLowerCase();
           const name = (m.name || '').toLowerCase();
-          const desc = (m.description || '').toLowerCase();
-          // STRICT FILTER: Must mention footwear specifically
-          const hasFootwearKeyword = name.includes('shoe') || name.includes('sneaker') || name.includes('boot') || name.includes('footwear') || name.includes('sandal') ||
-                                   cat.includes('shoe') || cat.includes('footwear') ||
-                                   desc.includes('shoe') || desc.includes('sneaker');
-          return hasFootwearKeyword;
+          // STRICT FILTER: Must mention footwear in NAME or CATEGORY
+          return name.includes('shoe') || name.includes('sneaker') || name.includes('boot') || name.includes('footwear') || name.includes('sandal') ||
+                 cat.includes('shoe') || cat.includes('footwear');
        });
     } else if (currentState.activeCategory === 'clothing' || (mentionsClothing && !mentionsShoes)) {
        matches = matches.filter(m => {
@@ -288,7 +285,7 @@ export default function ShoppingAssistant() {
             <div className="header-info">
               <span className="avatar-small">🤖</span>
               <div>
-                <h4>BuyWise Assistant <small style={{fontSize:'0.6rem', opacity:0.5}}>v1.4</small></h4>
+                <h4>BuyWise Assistant <small style={{fontSize:'0.6rem', opacity:0.5}}>v1.5</small></h4>
                 <span className="status">Online & Ready</span>
               </div>
             </div>

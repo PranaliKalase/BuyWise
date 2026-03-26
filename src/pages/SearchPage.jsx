@@ -112,9 +112,9 @@ export default function SearchPage({ session }) {
            finalProducts = finalProducts.filter(m => {
               const n = (m.name || '').toLowerCase();
               const c = (m.category || '').toLowerCase();
-              const d = (m.description || '').toLowerCase();
+              // HARD FILTER: Must mention footwear in NAME or CATEGORY (exclude description for strictness)
               return n.includes('shoe') || n.includes('sneaker') || n.includes('boot') || n.includes('footwear') || n.includes('sandal') || 
-                     c.includes('shoe') || c.includes('footwear') || d.includes('shoe') || d.includes('sneaker');
+                     c.includes('shoe') || c.includes('footwear');
            });
         } else if (mentionsClothing && !mentionsShoes) {
            finalProducts = finalProducts.filter(m => {
