@@ -38,11 +38,13 @@ export default function Header({ session, onOpenImageSearch }) {
     };
 
     recognition.onresult = (event) => {
-      const transcript = event.results[0][0].transcript;
+      const raw = event.results[0][0].transcript;
+      // Strip trailing punctuation added by speech recognition
+      const transcript = raw.replace(/[.,!?;:]+$/g, '').trim();
       setSearchQuery(transcript);
       // Automatically submit after recognizing
-      if (transcript.trim()) {
-        navigate('/search.html?q=' + encodeURIComponent(transcript.trim()));
+      if (transcript) {
+        navigate('/search.html?q=' + encodeURIComponent(transcript));
       }
     };
 
@@ -139,6 +141,9 @@ export default function Header({ session, onOpenImageSearch }) {
               <span style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>
                 {session?.user?.email}
               </span>
+              <button className="nav-btn" onClick={() => navigate('/profile')} title="My Profile" style={{ fontSize: '1.1rem' }}>
+                👤
+              </button>
               <button className="nav-btn" onClick={handleSignOut}>Sign Out</button>
             </div>
           )}

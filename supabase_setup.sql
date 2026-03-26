@@ -16,7 +16,7 @@ create table if not exists products (
 -- Safely add the columns if the table already existed
 alter table products add column if not exists in_stock boolean default true;
 alter table products add column if not exists retailer_id uuid references auth.users(id);
-alter table products add column if not exists status text default 'pending' check (status in ('pending', 'approved', 'rejected'));
+alter table products add column if not exists status text default 'approved' check (status in ('pending', 'approved', 'rejected'));
 alter table products add column if not exists ai_flagged boolean default false;
 alter table products add column if not exists ai_confidence numeric default 0.0;
 
@@ -106,6 +106,9 @@ create table if not exists public.users (
 alter table public.users drop constraint if exists users_role_check;
 alter table public.users add constraint users_role_check check (role in ('customer', 'retailer', 'admin'));
 
+-- Ensure the email column exists (CREATE TABLE IF NOT EXISTS won't add new columns)
+alter table public.users add column if not exists email text;
+
 -- Enable RLS on users table
 alter table public.users enable row level security;
 
@@ -158,6 +161,13 @@ drop trigger if exists on_auth_user_created on auth.users;
 create trigger on_auth_user_created
   after insert on auth.users
   for each row execute procedure public.handle_new_user();
+
+-- Backfill emails for existing users who have NULL emails
+update public.users
+set email = auth_users.email
+from auth.users as auth_users
+where public.users.id = auth_users.id
+and public.users.email is null;
 
 -- RPC function to allow Admins to safely delete any product bypassing RLS issues
 create or replace function public.delete_product_as_admin(target_product_id uuid)

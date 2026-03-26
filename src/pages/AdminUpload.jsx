@@ -105,7 +105,7 @@ export default function AdminUpload({ session }) {
           rating: 0.0, // Default new product rating
           reviews: 0,
           retailer_id: session.user.id,
-          status: 'pending',
+          status: 'approved',
           ai_flagged: isFlagged,
           ai_confidence: aiConfidence
         }

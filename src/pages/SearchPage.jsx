@@ -31,13 +31,41 @@ export default function SearchPage({ session }) {
           return;
         }
 
-        // Search Supabase directly for products added by the retailer
-        const { data, error: dbError } = await supabase
+        // Clean query: remove punctuation that voice recognition might add
+        const cleanQuery = query.replace(/[.,!?;:]+/g, '').trim();
+
+        if (!cleanQuery) {
+          setProducts([]);
+          setLoading(false);
+          return;
+        }
+
+        // First try full phrase match
+        let { data, error: dbError } = await supabase
           .from('products')
           .select('*')
-          .or(`name.ilike.%${query}%,description.ilike.%${query}%`);
+          .eq('status', 'approved')
+          .or(`name.ilike.%${cleanQuery}%,description.ilike.%${cleanQuery}%,category.ilike.%${cleanQuery}%`);
 
         if (dbError) throw dbError;
+
+        // If no results and query has multiple words, try individual word search
+        if ((!data || data.length === 0) && cleanQuery.includes(' ')) {
+          const words = cleanQuery.split(/\s+/).filter(w => w.length > 2);
+          if (words.length > 0) {
+            const orConditions = words.map(w => 
+              `name.ilike.%${w}%,description.ilike.%${w}%,category.ilike.%${w}%`
+            ).join(',');
+            
+            const result = await supabase
+              .from('products')
+              .select('*')
+              .eq('status', 'approved')
+              .or(orConditions);
+
+            if (!result.error) data = result.data;
+          }
+        }
 
         setProducts(data || []);
 

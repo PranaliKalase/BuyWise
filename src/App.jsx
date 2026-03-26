@@ -4,6 +4,7 @@ import './App.css'
 import Header from './components/Header'
 import CategoryStrip from './components/CategoryStrip'
 import Hero from './components/Hero'
+import Footer from './components/Footer'
 import ProductGrid from './components/ProductGrid'
 import ShoppingAssistant from './components/ShoppingAssistant'
 import ImageSearchModal from './components/ImageSearchModal'
@@ -16,6 +17,7 @@ import AdminDashboard from './pages/AdminDashboard'
 import SearchPage from './pages/SearchPage'
 import FavoritesPage from './pages/FavoritesPage'
 import Checkout from './pages/Checkout'
+import ProfilePage from './pages/ProfilePage'
 import { CartProvider } from './context/CartContext'
 import { FavoritesProvider } from './context/FavoritesContext'
 import { supabase } from './lib/supabaseClient'
@@ -52,6 +54,7 @@ function App() {
             <Route path="/manage" element={<ManageProducts session={session} />} />
             <Route path="/retailer-dashboard" element={<RetailerDashboard session={session} />} />
             <Route path="/admin-dashboard" element={<AdminDashboard session={session} />} />
+            <Route path="/profile" element={<ProfilePage session={session} />} />
           </Routes>
           <Cart />
         </div>
@@ -209,6 +212,7 @@ function Home({ session }) {
         onClose={() => setImageSearchOpen(false)} 
         onSearchResults={setSearchResults}
       />
+      <Footer />
     </>
   )
 }
