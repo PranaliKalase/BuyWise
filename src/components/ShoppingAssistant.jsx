@@ -67,19 +67,35 @@ export default function ShoppingAssistant() {
 
     // 1. If we are just starting
     if (!currentState.activeCategory) {
-      if (lowerText.includes('shoe') || lowerText.includes('sneaker') || lowerText.includes('boot')) {
-        currentState.activeCategory = 'shoes';
-        setChatState(currentState);
-        return { text: SHOE_QUESTIONS[0].text };
-      } else if (lowerText.includes('cloth') || lowerText.includes('shirt') || lowerText.includes('dress') || lowerText.includes('hoodie') || lowerText.includes('pant') || lowerText.includes('jeans')) {
-        currentState.activeCategory = 'clothing';
-        setChatState(currentState);
-        return { text: CLOTHING_QUESTIONS[0].text };
+      // Direct Search Detection (e.g. "Red Nike shoes under 5000")
+      const words = lowerText.split(/\s+/).filter(w => w.length > 2);
+      const hasCategory = lowerText.includes('shoe') || lowerText.includes('sneaker') || lowerText.includes('boot') || 
+                          lowerText.includes('cloth') || lowerText.includes('shirt') || lowerText.includes('dress') || lowerText.includes('hoodie');
+      
+      if (words.length >= 3 && hasCategory) {
+         // Determine category for direct search
+         if (lowerText.includes('shoe') || lowerText.includes('sneaker') || lowerText.includes('boot')) {
+            currentState.activeCategory = 'shoes';
+         } else {
+            currentState.activeCategory = 'clothing';
+         }
+         // Skip to search logic
       } else {
-        // Broad search intercept
-        currentState.activeCategory = 'general';
-        setChatState(currentState);
-        return { text: "I can help you find Shoes or Clothing perfectly! Which one are you looking for?" };
+        // Standard Workflow Start
+        if (lowerText.includes('shoe') || lowerText.includes('sneaker') || lowerText.includes('boot')) {
+          currentState.activeCategory = 'shoes';
+          setChatState(currentState);
+          return { text: SHOE_QUESTIONS[0].text };
+        } else if (lowerText.includes('cloth') || lowerText.includes('shirt') || lowerText.includes('dress') || lowerText.includes('hoodie') || lowerText.includes('pant') || lowerText.includes('jeans')) {
+          currentState.activeCategory = 'clothing';
+          setChatState(currentState);
+          return { text: CLOTHING_QUESTIONS[0].text };
+        } else {
+          // Broad search intercept
+          currentState.activeCategory = 'general';
+          setChatState(currentState);
+          return { text: "I can help you find Shoes or Clothing perfectly! Which one are you looking for?" };
+        }
       }
     }
 
@@ -130,6 +146,32 @@ export default function ShoppingAssistant() {
 
     let matches = [...dbProducts];
 
+    // Aggressive Category Filtering
+    const mentionsShoes = lowerPrefs.includes('shoe') || lowerPrefs.includes('sneaker') || lowerPrefs.includes('boot') || lowerPrefs.includes('footwear');
+    const mentionsClothing = lowerPrefs.includes('cloth') || lowerPrefs.includes('shirt') || lowerPrefs.includes('dress') || lowerPrefs.includes('hoodie') || lowerPrefs.includes('pant');
+
+    if (currentState.activeCategory === 'shoes' || (mentionsShoes && !mentionsClothing)) {
+       matches = matches.filter(m => {
+          const cat = (m.category || '').toLowerCase();
+          const name = (m.name || '').toLowerCase();
+          const desc = (m.description || '').toLowerCase();
+          // STRICT FILTER: Must mention footwear specifically
+          const hasFootwearKeyword = name.includes('shoe') || name.includes('sneaker') || name.includes('boot') || name.includes('footwear') || name.includes('sandal') ||
+                                   cat.includes('shoe') || cat.includes('footwear') ||
+                                   desc.includes('shoe') || desc.includes('sneaker');
+          return hasFootwearKeyword;
+       });
+    } else if (currentState.activeCategory === 'clothing' || (mentionsClothing && !mentionsShoes)) {
+       matches = matches.filter(m => {
+          const cat = (m.category || '').toLowerCase();
+          const name = (m.name || '').toLowerCase();
+          // STRICT FILTER: Must mention apparel specifically
+          const hasApparelKeyword = name.includes('shirt') || name.includes('dress') || name.includes('pant') || name.includes('hoodie') || name.includes('top') || name.includes('tshirt') || name.includes('jeans') ||
+                                  cat.includes('apparel') || cat.includes('clothing');
+          return hasApparelKeyword;
+       });
+    }
+
     if (budget) {
       matches = matches.filter(p => parseFloat(p.price) <= budget);
     }
@@ -137,14 +179,18 @@ export default function ShoppingAssistant() {
     if (keywords.length > 0) {
       matches.forEach(m => {
         m.score = 0;
-        const nameDesc = ((m.name || '') + ' ' + (m.description || '') + ' ' + (m.category || '')).toLowerCase();
+        const name = (m.name || '').toLowerCase();
+        const desc = (m.description || '').toLowerCase();
+        const cat = (m.category || '').toLowerCase();
         
         keywords.forEach(kw => {
-          if (nameDesc.includes(kw)) m.score += 1;
+          if (name.includes(kw)) m.score += 5; // TITLE MATCH (Highest Priority)
+          if (cat.includes(kw)) m.score += 3;  // CATEGORY MATCH
+          if (desc.includes(kw)) m.score += 1; // DESCRIPTION MATCH
         });
         
-        if (size && nameDesc.includes(parseInt(size, 10).toString())) {
-             m.score += 2; 
+        if (size && (name + ' ' + desc).includes(parseInt(size, 10).toString())) {
+             m.score += 10; // Extreme weight for size if specific
         }
       });
       matches = matches.filter(m => m.score > 0);
@@ -156,10 +202,21 @@ export default function ShoppingAssistant() {
     setChatState({ activeCategory: null, stepIndex: 0, collectedData: {} });
 
     if (matches.length > 0) {
+      // Final "Hard Filter" to ensure zero leakage for shoe searches
+      if (mentionsShoes || currentState.activeCategory === 'shoes') {
+         matches = matches.filter(m => {
+            const n = (m.name || '').toLowerCase();
+            const c = (m.category || '').toLowerCase();
+            return n.includes('shoe') || n.includes('sneaker') || n.includes('boot') || n.includes('footwear') || n.includes('sandal') || c.includes('shoe') || c.includes('footwear');
+         });
+      }
+
       const topMatches = matches.slice(0, Math.min(matches.length, 3));
       
-      let summaryText = `Here are some great options matching your preferences:\n`;
-      summaryText += `Tap ❤️ to save to Favorites | Tap 🛒 to add to Cart\n`;
+      let summaryText = `I found some great options for you! 🔎\n`;
+      if (keywords.length > 0) {
+        summaryText += `Looking for: ${keywords.join(', ')}\n\n`;
+      }
       
       return {
         text: summaryText,
@@ -207,23 +264,11 @@ export default function ShoppingAssistant() {
 
   // Heart formatting hook for internal UI
   const handleHeartClick = (product) => {
-     const isNowFav = toggleFavorite(product);
-     // Inject a system confirmation string into chat 
-     // We bypass `processInput` directly into standard messages
-     setMessages(prev => [...prev, {
-        role: 'assistant',
-        text: isNowFav ? `Added ${product.name} to your Favorites ❤️` : `Removed ${product.name} from Favorites 💔`,
-        isSystemPopup: true
-     }]);
+     toggleFavorite(product);
   };
 
   const handleCartClick = (product) => {
      addToCart(product);
-     setMessages(prev => [...prev, {
-        role: 'assistant',
-        text: `Added ${product.name} to Cart 🛒!`,
-        isSystemPopup: true
-     }]);
      setIsCartOpen(true);
   };
 
@@ -243,7 +288,7 @@ export default function ShoppingAssistant() {
             <div className="header-info">
               <span className="avatar-small">🤖</span>
               <div>
-                <h4>Fashion Assistant</h4>
+                <h4>BuyWise Assistant <small style={{fontSize:'0.6rem', opacity:0.5}}>v1.4</small></h4>
                 <span className="status">Online & Ready</span>
               </div>
             </div>
@@ -257,24 +302,24 @@ export default function ShoppingAssistant() {
                 
                 {/* Advanced Interactive Product UI rendering directly inside chat */}
                 {msg.products && msg.products.length > 0 && (
-                   <div className="assistant-products-shelf" style={{marginTop: '10px', display: 'flex', flexDirection: 'column', gap: '8px'}}>
+                   <div className="assistant-products-shelf" style={{marginTop: '12px', display: 'flex', flexDirection: 'column', gap: '10px'}}>
                      {msg.products.map(p => (
-                        <div key={p.id} className="assistant-product-widget" style={{display:'flex', background:'rgba(255,255,255,0.05)', border:'1px solid rgba(255,255,255,0.1)', padding:'8px', borderRadius:'8px', alignItems:'center'}}>
-                           <img src={p.image_url || p.image || 'https://via.placeholder.com/100?text=No+Image'} style={{width:'45px',height:'45px',borderRadius:'4px',objectFit:'cover'}} alt={p.name} />
+                        <div key={p.id} className="assistant-product-widget" style={{display:'flex', background:'rgba(255,255,255,0.08)', border:'1px solid rgba(255,255,255,0.12)', padding:'10px', borderRadius:'12px', alignItems:'center', transition:'transform 0.2s'}}>
+                           <img src={p.image_url || p.image || 'https://via.placeholder.com/100?text=No+Image'} style={{width:'50px',height:'50px',borderRadius:'8px',objectFit:'cover', border:'1px solid rgba(255,255,255,0.1)'}} alt={p.name} />
                            
-                           <div style={{flex: 1, marginLeft:'10px'}}>
-                              <div style={{fontSize:'0.85rem', fontWeight:'bold', lineHeight:'1.2', display:'-webkit-box', WebkitLineClamp:'1', WebkitBoxOrient:'vertical', overflow:'hidden'}} title={p.name}>
+                           <div style={{flex: 1, marginLeft:'12px'}}>
+                              <div style={{fontSize:'0.85rem', fontWeight:'600', color:'white', lineHeight:'1.2', display:'-webkit-box', WebkitLineClamp:'1', WebkitBoxOrient:'vertical', overflow:'hidden'}} title={p.name}>
                                 {p.name}
                               </div>
-                              <div style={{color:'var(--primary-cyan)', fontWeight:'bold', fontSize:'0.9rem'}}>
+                              <div style={{color:'var(--color-primary)', fontWeight:'800', fontSize:'0.95rem', marginTop:'2px'}}>
                                 ₹{parseFloat(p.price).toLocaleString('en-IN')}
                               </div>
                            </div>
 
-                           <div style={{display:'flex', gap:'5px'}}>
+                           <div style={{display:'flex', gap:'6px'}}>
                               <button 
                                 onClick={() => handleHeartClick(p)}
-                                style={{background: isFavorite(p.id) ? 'rgba(225,29,72,0.2)' : 'rgba(255,255,255,0.1)', border: isFavorite(p.id) ? '1px solid #e11d48' : '1px solid rgba(255,255,255,0.2)', borderRadius:'4px', padding:'4px 8px', cursor:'pointer', fontSize:'1rem', transition:'all 0.2s', display:'flex', alignItems:'center', justifyContent:'center'}}
+                                style={{background: isFavorite(p.id) ? 'rgba(239,68,68,0.2)' : 'rgba(255,255,255,0.05)', border: isFavorite(p.id) ? '1px solid #ef4444' : '1px solid rgba(255,255,255,0.1)', borderRadius:'8px', width:'34px', height:'34px', cursor:'pointer', fontSize:'1rem', transition:'all 0.2s', display:'flex', alignItems:'center', justifyContent:'center'}}
                                 title={isFavorite(p.id) ? "Remove from Favorites" : "Add to Favorites"}
                               >
                                 {isFavorite(p.id) ? '❤️' : '🤍'}
@@ -282,7 +327,7 @@ export default function ShoppingAssistant() {
                               
                               <button 
                                 onClick={() => handleCartClick(p)}
-                                style={{background:'var(--primary-cyan)', color:'#0f1111', border:'none', borderRadius:'4px', padding:'4px 8px', cursor:'pointer', fontSize:'1rem', display:'flex', alignItems:'center', justifyContent:'center'}}
+                                style={{background:'var(--color-primary)', color:'white', border:'none', borderRadius:'8px', width:'34px', height:'34px', cursor:'pointer', fontSize:'1rem', display:'flex', alignItems:'center', justifyContent:'center', transition:'all 0.2s'}}
                                 title="Add to Cart"
                               >
                                 🛒
