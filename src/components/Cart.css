@@ -6,7 +6,7 @@
   height: 100vh;
   background: rgba(0, 0, 0, 0.5);
   backdrop-filter: blur(4px);
-  z-index: 999;
+  z-index: 99998;
 }
 
 .cart-panel {
@@ -20,7 +20,7 @@
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
   border-left: 1px solid var(--border-color);
-  z-index: 1000;
+  z-index: 99999;
   display: flex;
   flex-direction: column;
   transition: right 0.3s cubic-bezier(0.16, 1, 0.3, 1);
@@ -61,6 +61,11 @@
 .close-cart {
   color: var(--text-muted);
   transition: color 0.2s;
+  background: none;
+  border: none;
+  cursor: pointer;
+  z-index: 100000;
+  position: relative;
 }
 
 .close-cart:hover {

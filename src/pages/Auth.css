@@ -84,8 +84,8 @@
   color: #ffffff !important;
 }
 
-.form-group input[type="email"],
-.form-group input[type="password"] {
+.form-group input#email,
+.form-group input#password {
   width: 100%;
   padding: 0.85rem 1.1rem;
   background: #1e293b !important;
@@ -98,26 +98,59 @@
   font-family: inherit;
 }
 
-.form-group input[type="email"]::placeholder,
-.form-group input[type="password"]::placeholder {
+.form-group input#email::placeholder,
+.form-group input#password::placeholder {
   color: #64748b !important;
   opacity: 1;
 }
 
-.form-group input[type="email"]:hover,
-.form-group input[type="password"]:hover {
+.form-group input#email:hover,
+.form-group input#password:hover {
   background: #273549 !important;
   border-color: #6366f1 !important;
   color: #ffffff !important;
 }
 
-.form-group input[type="email"]:focus,
-.form-group input[type="password"]:focus {
+.form-group input#email:focus,
+.form-group input#password:focus {
   outline: none;
   border-color: #6366f1 !important;
   box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.25) !important;
   background: #1e293b !important;
   color: #ffffff !important;
+}
+
+.password-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.password-wrapper input#password {
+  padding-right: 2.5rem !important; /* Make room for the eye icon */
+}
+
+.password-toggle-btn {
+  position: absolute;
+  right: 12px;
+  background: transparent;
+  border: none;
+  color: #64748b;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  transition: color 0.2s ease;
+  outline: none;
+}
+
+.password-toggle-btn:hover {
+  color: #cbd5e1;
+}
+
+.password-toggle-btn:focus {
+  color: #6366f1;
 }
 
 /* Chrome / Safari / Edge Autofill Fix */

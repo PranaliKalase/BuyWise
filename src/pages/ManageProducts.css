@@ -107,10 +107,10 @@
 }
 
 .item-price {
-  font-size: 1.1rem;
-  color: #94a3b8;
+  font-size: 1.15rem;
+  color: #FFFFFF !important;
   margin: 0;
-  font-weight: 500;
+  font-weight: 700;
 }
 
 .item-actions {

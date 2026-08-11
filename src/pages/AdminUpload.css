@@ -98,10 +98,10 @@
 .admin-form input[type="file"] {
   width: 100%;
   padding: 0.8rem 1rem;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid var(--glass-border);
+  background: rgba(255, 255, 255, 0.05) !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
   border-radius: 8px;
-  color: #fff;
+  color: #ffffff !important;
   font-size: 1rem;
   transition: all 0.3s ease;
   font-family: inherit;
@@ -156,9 +156,9 @@
 .admin-form select:focus,
 .admin-form textarea:focus {
   outline: none;
-  border-color: var(--primary-cyan);
-  box-shadow: 0 0 0 2px rgba(0, 210, 255, 0.2);
-  background: rgba(255, 255, 255, 0.08);
+  border-color: var(--color-primary) !important;
+  box-shadow: 0 0 15px rgba(99, 102, 241, 0.5) !important;
+  background: rgba(255, 255, 255, 0.1) !important;
 }
 
 .admin-form textarea {

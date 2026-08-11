@@ -82,6 +82,16 @@ button {
   outline: none;
 }
 
+input, textarea, select {
+  font-family: inherit;
+  color: var(--text-main);
+  background-color: transparent;
+}
+
+input::placeholder, textarea::placeholder {
+  color: var(--text-muted);
+}
+
 ul, ol {
   list-style: none;
 }
