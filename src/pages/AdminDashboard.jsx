@@ -359,7 +359,7 @@ export default function AdminDashboard({ session }) {
                     {customers.length > 0 ? customers.map(c => (
                       <tr key={c.id}>
                         <td style={{ fontFamily: 'monospace', fontSize: '0.85rem' }}>{c.id?.substring(0, 8)}...</td>
-                        <td style={{ fontSize: '0.85rem' }}>{c.email}</td>
+                        <td style={{ fontSize: '0.85rem', color: '#000000' }}>{c.email}</td>
                         <td>{new Date(c.created_at).toLocaleDateString()}</td>
                         <td><span style={{ background: 'rgba(16, 185, 129, 0.1)', color: '#10b981', padding: '4px 8px', borderRadius: '6px', fontSize: '0.75rem' }}>Active</span></td>
                       </tr>
@@ -393,7 +393,7 @@ export default function AdminDashboard({ session }) {
                     {retailers.length > 0 ? retailers.map(r => (
                       <tr key={r.id}>
                         <td style={{ fontFamily: 'monospace', fontSize: '0.85rem' }}>{r.id?.substring(0, 8)}...</td>
-                        <td style={{ fontSize: '0.85rem' }}>{r.email}</td>
+                        <td style={{ fontSize: '0.85rem', color: '#000000' }}>{r.email}</td>
                         <td>{new Date(r.created_at).toLocaleDateString()}</td>
                         <td><span style={{ background: 'rgba(16, 185, 129, 0.1)', color: '#10b981', padding: '4px 8px', borderRadius: '6px', fontSize: '0.75rem' }}>Active</span></td>
                       </tr>

@@ -522,7 +522,7 @@ export default function RetailerDashboard({ session }) {
                             <span style={{whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '150px'}}>{p.name}</span>
                           </div>
                         </td>
-                        <td>{formatCurrency(p.price)}</td>
+                        <td className="price-column">{formatCurrency(p.price)}</td>
                         <td>{p.category}</td>
                         <td>{p.qty}</td>
                         <td>{formatCurrency(p.amount)}</td>
