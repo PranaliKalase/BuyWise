@@ -4,12 +4,12 @@ import { supabase } from '../lib/supabaseClient';
 import {
   ShieldCheck, Users, PackageSearch, LayoutDashboard,
   Settings, LogOut, CheckCircle, XCircle, Search, User,
-  ShoppingCart, Trash2, Brain, Plus, X, Zap, AlertTriangle
+  ShoppingCart, Trash2, Brain, Plus, X, Zap, AlertTriangle, Star
 } from 'lucide-react';
 import './RetailerDashboard.css';
 
 const formatCurrency = (amount) => {
-  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
+  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount).replace('$', '₹');
 };
 
 export default function AdminDashboard({ session }) {
@@ -24,6 +24,7 @@ export default function AdminDashboard({ session }) {
   const [pendingProducts, setPendingProducts] = useState([]);
   const [allProducts, setAllProducts] = useState([]);
   const [orders, setOrders] = useState([]);
+  const [adminReviews, setAdminReviews] = useState([]);
 
   // AI Product Management State
   const [bannedKeywords, setBannedKeywords] = useState(() => {
@@ -97,6 +98,23 @@ export default function AdminDashboard({ session }) {
           setOrders(ordersData);
         }
 
+        // Fetch Reviews (LocalStorage + Supabase)
+        let combinedRev = [];
+        try {
+          const localR = JSON.parse(localStorage.getItem('buywise_reviews') || '[]');
+          if (Array.isArray(localR)) combinedRev = [...localR];
+        } catch (e) {}
+
+        try {
+          const { data: revData } = await supabase.from('product_reviews').select('*').order('created_at', { ascending: false });
+          if (revData && revData.length > 0) {
+            const existingIds = new Set(combinedRev.map(r => r.id));
+            revData.forEach(r => { if (!existingIds.has(r.id)) combinedRev.push(r); });
+          }
+        } catch (e) {}
+
+        setAdminReviews(combinedRev);
+
         if (usersError) console.error("Users Fetch Error:", usersError);
 
       } catch (err) {
@@ -108,6 +126,23 @@ export default function AdminDashboard({ session }) {
 
     fetchAdminData();
   }, [session, navigate]);
+
+  const handleDeleteReview = async (reviewId) => {
+    if (!window.confirm("Are you sure you want to remove this review?")) return;
+
+    try {
+      const localR = JSON.parse(localStorage.getItem('buywise_reviews') || '[]');
+      const updated = localR.filter(r => r.id !== reviewId);
+      localStorage.setItem('buywise_reviews', JSON.stringify(updated));
+    } catch (e) {}
+
+    try {
+      await supabase.from('product_reviews').delete().eq('id', reviewId);
+    } catch (e) {}
+
+    setAdminReviews(prev => prev.filter(r => r.id !== reviewId));
+    alert("Review removed successfully.");
+  };
 
   const handleModerate = async (productId, newStatus) => {
     try {
@@ -278,6 +313,9 @@ export default function AdminDashboard({ session }) {
           <button className={`nav-item ${activeTab === 'ai' ? 'active' : ''}`} onClick={() => setActiveTab('ai')}>
             <Brain size={20} /> AI Product Mgt
           </button>
+          <button className={`nav-item ${activeTab === 'reviews' ? 'active' : ''}`} onClick={() => setActiveTab('reviews')}>
+            <Star size={20} /> Reviews Mgt
+          </button>
           <div style={{ flex: 1 }}></div>
           <button className="nav-item logout" onClick={handleSignOut} style={{ marginTop: 'auto' }}>
             <LogOut size={20} /> Log out
@@ -294,6 +332,7 @@ export default function AdminDashboard({ session }) {
             {activeTab === 'orders' && 'Order Management'}
             {activeTab === 'products' && 'Product Management & Moderation'}
             {activeTab === 'ai' && 'AI Product Management'}
+            {activeTab === 'reviews' && 'Customer Reviews Moderation'}
           </h1>
 
         </header>
@@ -386,27 +425,33 @@ export default function AdminDashboard({ session }) {
                     </tr>
                   </thead>
                   <tbody>
-                    {orders.length > 0 ? orders.map(o => (
-                      <tr key={o.id}>
-                        <td style={{ fontFamily: 'monospace', fontSize: '0.85rem' }}>{o.id.substring(0, 8)}...</td>
-                        <td>{o.customer_name}</td>
-                        <td>{formatCurrency(o.total_amount)}</td>
-                        <td>{new Date(o.created_at).toLocaleDateString()}</td>
-                        <td>
-                          <span style={{
-                            background: (o.status === 'Payment Successful' || o.status === 'Delivered') ? 'rgba(16, 185, 129, 0.1)' :
-                              o.status === 'Processing' ? 'rgba(234, 179, 8, 0.1)' : 'rgba(148, 163, 184, 0.1)',
-                            color: (o.status === 'Payment Successful' || o.status === 'Delivered') ? '#10b981' :
-                              o.status === 'Processing' ? '#eab308' : '#94a3b8',
-                            padding: '4px 8px',
-                            borderRadius: '6px',
-                            fontSize: '0.75rem'
-                          }}>
-                            {(o.status === 'Payment Successful' || o.status === 'Delivered') ? '✅ Payment Successful' : o.status}
-                          </span>
-                        </td>
-                      </tr>
-                    )) : <tr><td colSpan="5" style={{ textAlign: 'center', padding: '2rem' }}>No orders found in the system.</td></tr>}
+                    {orders.length > 0 ? orders.map(o => {
+                      const displayId = o.order_id || (o.id ? `${o.id.substring(0, 8)}...` : 'BW-ORDER');
+                      const displayAmount = o.final_amount || o.total_amount || 0;
+                      const displayStatus = o.order_status || o.status || 'Confirmed';
+                      const isSuccess = displayStatus.toLowerCase() === 'confirmed' || displayStatus === 'Payment Successful' || displayStatus === 'Delivered';
+                      return (
+                        <tr key={o.order_id || o.id}>
+                          <td style={{ fontFamily: 'monospace', fontSize: '0.85rem', fontWeight: 600 }}>{displayId}</td>
+                          <td>{o.customer_name || o.customer_email || 'Customer'}</td>
+                          <td>{formatCurrency(displayAmount)}</td>
+                          <td>{new Date(o.created_at).toLocaleDateString()}</td>
+                          <td>
+                            <span style={{
+                              background: isSuccess ? 'rgba(16, 185, 129, 0.1)' : 'rgba(234, 179, 8, 0.1)',
+                              color: isSuccess ? '#10b981' : '#eab308',
+                              padding: '4px 8px',
+                              borderRadius: '6px',
+                              fontSize: '0.75rem',
+                              fontWeight: 600
+                            }}>
+                              {isSuccess ? '✅ ' + displayStatus : displayStatus}
+                            </span>
+                          </td>
+                        </tr>
+                      );
+                    }) : <tr><td colSpan="5" style={{ textAlign: 'center', padding: '2rem' }}>No orders found in the system.</td></tr>}
+
                   </tbody>
                 </table>
               </div>
@@ -782,6 +827,57 @@ export default function AdminDashboard({ session }) {
                 </div>
               </div>
             )}
+          </div>
+        )}
+
+        {/* REVIEWS TAB */}
+        {activeTab === 'reviews' && (
+          <div className="dashboard-content">
+            <div className="dashboard-widget glass-panel">
+              <div className="widget-title" style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <span style={{ fontSize: '1.2rem', fontWeight: 'bold' }}>All Customer Reviews</span>
+                <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Total: {adminReviews.length}</span>
+              </div>
+              <div className="products-table-wrapper">
+                <table className="products-table">
+                  <thead>
+                    <tr>
+                      <th>Product ID</th>
+                      <th>Customer ID</th>
+                      <th>Rating</th>
+                      <th>Title & Review Body</th>
+                      <th>Date</th>
+                      <th>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {adminReviews.length > 0 ? adminReviews.map(r => (
+                      <tr key={r.id}>
+                        <td style={{ fontFamily: 'monospace', fontSize: '0.85rem' }}>{r.product_id}</td>
+                        <td style={{ fontSize: '0.85rem', fontFamily: 'monospace' }}>{r.customer_id?.substring(0,8) || 'Anonymous'}</td>
+                        <td>
+                          <span style={{ color: '#f59e0b', fontWeight: 'bold' }}>⭐ {r.rating}/5</span>
+                        </td>
+                        <td style={{ maxWidth: '340px' }}>
+                          <strong style={{ color: '#ffffff', display: 'block', fontSize: '0.88rem' }}>{r.review_title || 'No Title'}</strong>
+                          <span style={{ fontSize: '0.82rem', color: '#94a3b8', display: 'block', marginTop: '0.2rem' }}>{r.review_text}</span>
+                        </td>
+                        <td style={{ fontSize: '0.82rem' }}>{new Date(r.created_at).toLocaleDateString()}</td>
+                        <td>
+                          <button
+                            className="btn btn-secondary"
+                            onClick={() => handleDeleteReview(r.id)}
+                            style={{ background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)', color: '#ef4444', padding: '6px 12px', fontSize: '0.8rem', borderRadius: '8px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}
+                          >
+                            <Trash2 size={14} /> Remove
+                          </button>
+                        </td>
+                      </tr>
+                    )) : <tr><td colSpan="6" style={{ textAlign: 'center', padding: '2rem' }}>No reviews found in the system.</td></tr>}
+                  </tbody>
+                </table>
+              </div>
+            </div>
           </div>
         )}
 

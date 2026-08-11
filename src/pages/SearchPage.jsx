@@ -5,6 +5,44 @@ import { supabase } from '../lib/supabaseClient';
 import Header from '../components/Header';
 import './SearchPage.css';
 
+const extractAttributes = (product) => {
+  const attrs = [];
+  const desc = (product.description || '').toLowerCase();
+  const cat = (product.category || '').toLowerCase();
+
+  if (cat.includes('electronic') || cat.includes('computer') || cat.includes('phone') || cat.includes('laptop') || cat.includes('audio') || cat.includes('smart')) {
+    const ramMatch = desc.match(/(\d+\s*(?:gb|tb))\s*ram/i) || desc.match(/ram:?\s*(\d+\s*(?:gb|tb))/i);
+    if (ramMatch) attrs.push({ label: 'RAM', value: ramMatch[1].toUpperCase() });
+    
+    const storageMatch = desc.match(/(\d+\s*(?:gb|tb))\s*(?:storage|ssd|hdd)/i);
+    if (storageMatch) attrs.push({ label: 'Storage', value: storageMatch[1].toUpperCase() });
+    
+    const batteryMatch = desc.match(/(\d+(?:\.\d+)?)\s*(?:mah|hours?)\s*battery/i) || desc.match(/battery\s*life[^\d]*(\d+(?:\.\d+)?)\s*(?:hours?)/i);
+    if (batteryMatch) attrs.push({ label: 'Battery', value: batteryMatch[1] + (batteryMatch[0].toLowerCase().includes('mah') ? ' mAh' : ' Hours') });
+  } else if (cat.includes('apparel') || cat.includes('shoe') || cat.includes('fashion') || cat.includes('clothing') || cat.includes('wearable')) {
+    const materialMatch = desc.match(/(?:made of|material:?)\s*([a-z]+)/i);
+    if (materialMatch && !['the', 'a', 'an'].includes(materialMatch[1])) {
+      attrs.push({ label: 'Material', value: materialMatch[1].charAt(0).toUpperCase() + materialMatch[1].slice(1) });
+    }
+  } else if (cat.includes('home') || cat.includes('appliance')) {
+    const capacityMatch = desc.match(/(\d+)\s*(?:liters?|l)\s*capacity/i);
+    if (capacityMatch) attrs.push({ label: 'Capacity', value: capacityMatch[1] + 'L' });
+  }
+
+  // Common fallbacks if no structured regex match
+  if (attrs.length === 0) {
+     if (desc.length > 80) {
+        attrs.push({ label: 'Overview', value: desc.substring(0, 80) + '...' });
+     } else if (desc) {
+        attrs.push({ label: 'Overview', value: desc });
+     } else {
+        attrs.push({ label: 'Specs', value: 'Standard Specifications' });
+     }
+  }
+
+  return attrs;
+};
+
 export default function SearchPage({ session }) {
   const [searchParams] = useSearchParams();
   const query = searchParams.get('q') || '';
@@ -141,50 +179,54 @@ export default function SearchPage({ session }) {
   const handleCompare = async (product) => {
     setCompareProduct(product);
     try {
-      let queryBase = supabase.from('products').select('*').neq('id', product.id);
-      
+      // 1. MUST MATCH CATEGORY
+      let queryBase = supabase
+        .from('products')
+        .select('*')
+        .neq('id', product.id)
+        .eq('status', 'approved');
+
+      if (product.category) {
+        queryBase = queryBase.eq('category', product.category);
+      }
+
       const targetName = (product.name || '').toLowerCase();
       
-      // Strict Type Identification
-      const isShoe = targetName.includes('shoe') || targetName.includes('sneaker') || targetName.includes('boot') || targetName.includes('sandal') || targetName.includes('footwear');
-      const isDress = targetName.includes('dress') || targetName.includes('gown') || targetName.includes('frock');
-      const isShirt = targetName.includes('shirt') || targetName.includes('hoodie') || targetName.includes('tshirt') || targetName.includes(' top ');
-      const isPant = targetName.includes('pant') || targetName.includes('jeans') || targetName.includes('trouser') || targetName.includes('bottom');
-      const isWatch = targetName.includes('watch') || targetName.includes('smartwatch');
+      // 2. EXTRACT PRODUCT TYPE DYNAMICALLY
+      // Stop words to avoid matching generic terms
+      const stopWords = ['new', 'sale', 'the', 'and', 'with', 'for', 'pro', 'max', 'plus', 'ultra', 'smart', 'wireless', 'bluetooth', 'mens', 'womens', 'kids'];
+      const nameWords = targetName.split(/[^a-z0-9]+/).filter(w => w.length > 2 && !stopWords.includes(w));
+      const lastWord = nameWords.length > 0 ? nameWords[nameWords.length - 1] : null;
 
-      if (isShoe) {
-         queryBase = queryBase.or('name.ilike.%shoe%,name.ilike.%sneaker%,name.ilike.%boot%,name.ilike.%sandal%,name.ilike.%footwear%');
-      } else if (isDress) {
-         queryBase = queryBase.or('name.ilike.%dress%,name.ilike.%gown%,name.ilike.%frock%');
-      } else if (isShirt) {
-         queryBase = queryBase.or('name.ilike.%shirt%,name.ilike.%hoodie%,name.ilike.%tshirt%,name.ilike.% top %');
-      } else if (isPant) {
-         queryBase = queryBase.or('name.ilike.%pant%,name.ilike.%jeans%,name.ilike.%trouser%,name.ilike.%bottom%');
-      } else if (isWatch) {
-         queryBase = queryBase.ilike('name', '%watch%');
-      } else {
-         // Fallback: Use the last identified word of the title as the "noun"
-         const nameWords = targetName.split(/[^a-z0-9]+/).filter(w => w.length > 2);
-         const lastWord = nameWords.length > 0 ? nameWords[nameWords.length - 1] : null;
-
-         if (lastWord && !['new', 'sale', 'the', 'and'].includes(lastWord)) {
-            queryBase = queryBase.ilike('name', `%${lastWord}%`);
-         } else if (product.category) {
-            queryBase = queryBase.eq('category', product.category);
-         } else {
-            setComparisonList([product]);
-            return;
-         }
-      }
-
-      // Fetch up to 2 strictly matching products
-      const { data, error } = await queryBase.limit(2);
+      // 3. TRY EXACT PRODUCT TYPE MATCH WITHIN CATEGORY
+      let comparisonList = [product];
       
-      if (!error && data) {
-        setComparisonList([product, ...data]);
-      } else {
-        setComparisonList([product]);
+      if (lastWord) {
+        // Find products in the same category that share the main product type (noun)
+        const { data, error } = await queryBase.ilike('name', `%${lastWord}%`).limit(2);
+        
+        if (!error && data && data.length > 0) {
+          comparisonList = [product, ...data];
+        }
       }
+      
+      // 4. INTELLIGENT FALLBACK: If no exact product type match, just get anything in the same category
+      if (comparisonList.length === 1 && product.category) {
+        const fallbackQuery = supabase
+          .from('products')
+          .select('*')
+          .neq('id', product.id)
+          .eq('status', 'approved')
+          .eq('category', product.category)
+          .limit(2);
+          
+        const { data: fallbackData, error: fallbackError } = await fallbackQuery;
+        if (!fallbackError && fallbackData && fallbackData.length > 0) {
+          comparisonList = [product, ...fallbackData];
+        }
+      }
+
+      setComparisonList(comparisonList);
     } catch (e) {
       setComparisonList([product]);
     }
@@ -318,9 +360,19 @@ export default function SearchPage({ session }) {
                      <div style={{fontSize: '1.3rem', fontWeight: 'bold', color: 'var(--color-primary)'}}>
                        ₹{parseFloat(item.price).toLocaleString('en-IN')}
                      </div>
-                     <p style={{fontSize: '0.9rem', color: 'var(--text-muted)', flex: 1}}>
-                       {item.description || "N/A"}
-                     </p>
+                     <div className="dynamic-attributes" style={{ fontSize: '0.9rem', color: 'var(--text-main)', flex: 1, marginTop: '0.5rem' }}>
+                       <div style={{ marginBottom: '6px' }}>
+                         <strong>Category:</strong> {item.category || "General"}
+                       </div>
+                       <div style={{ marginBottom: '6px' }}>
+                         <strong>Rating:</strong> ⭐ {item.rating || 0} <span style={{color: 'var(--text-muted)'}}>({item.reviews || 0} reviews)</span>
+                       </div>
+                       {extractAttributes(item).map((attr, i) => (
+                         <div key={i} style={{ marginBottom: '6px' }}>
+                           <strong>{attr.label}:</strong> <span style={{color: 'var(--text-muted)'}}>{attr.value}</span>
+                         </div>
+                       ))}
+                     </div>
                      <button 
                        className={idx === 0 ? "btn-primary" : "btn-outline"}
                        onClick={() => {

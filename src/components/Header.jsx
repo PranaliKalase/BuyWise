@@ -97,64 +97,67 @@ export default function Header({ session, onOpenImageSearch }) {
     await supabase.auth.signOut();
   };
   return (
-    <header className="header glass-panel">
-      <div className="container header-container">
-        <div className="logo" onClick={() => navigate('/')} style={{ cursor: 'pointer' }}>
-          <span className="text-gradient">BuyWise</span> Retail
-        </div>
+    <>
+      <div className="header-spacer"></div>
+      <header className="header glass-panel">
+        <div className="container header-container">
+          <div className="logo" onClick={() => navigate('/')} style={{ cursor: 'pointer' }}>
+            <span className="text-gradient">BuyWise</span> Retail
+          </div>
 
-        <div className="search-bar">
-          <input
-            type="text"
-            placeholder={isListening ? "Listening..." : "What are you looking for?"}
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                executeSearch();
-              }
-            }}
-            className={isListening ? "listening-input" : ""}
-          />
-          {speechError && <div className="speech-error-msg">{speechError}</div>}
-          <button 
-            className={`icon-btn mic-icon ${isListening ? 'listening pulse-animation' : ''}`} 
-            title="Voice Search" 
-            onClick={startVoiceSearch}
-          >
-            🎤
-          </button>
-          <button className="icon-btn search-icon" onClick={executeSearch}>🔍</button>
-          <button className="icon-btn camera-icon" title="Search by Image" onClick={onOpenImageSearch}>📷</button>
-        </div>
+          <div className="search-bar">
+            <input
+              type="text"
+              placeholder={isListening ? "Listening..." : "What are you looking for?"}
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  executeSearch();
+                }
+              }}
+              className={isListening ? "listening-input" : ""}
+            />
+            {speechError && <div className="speech-error-msg">{speechError}</div>}
+            <button 
+              className={`icon-btn mic-icon ${isListening ? 'listening pulse-animation' : ''}`} 
+              title="Voice Search" 
+              onClick={startVoiceSearch}
+            >
+              🎤
+            </button>
+            <button className="icon-btn search-icon" onClick={executeSearch}>🔍</button>
+            <button className="icon-btn camera-icon" title="Search by Image" onClick={onOpenImageSearch}>📷</button>
+          </div>
 
-        <nav className="nav-actions">
-          {!session ? (
-            <button className="nav-btn" onClick={() => navigate('/auth')}>Sign In</button>
-          ) : (
-            <div className="user-menu" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-              {userRole === 'retailer' && (
-                 <button className="nav-btn" style={{color: 'var(--primary-cyan)'}} onClick={() => navigate('/retailer-dashboard')}>
-                   Retailer Dashboard
-                 </button>
-              )}
-              <span style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>
-                {session?.user?.email}
-              </span>
-              <button className="nav-btn" onClick={() => navigate('/profile')} title="My Profile" style={{ fontSize: '1.1rem' }}>
-                👤
-              </button>
-              <button className="nav-btn" onClick={handleSignOut}>Sign Out</button>
-            </div>
-          )}
-          <button className="nav-btn cart-btn" onClick={() => navigate('/favorites.html')} style={{ marginRight: '10px' }} title="View Favorites">
-            ❤️ {favorites.length > 0 && <span className="cart-badge" style={{background:'#e11d48'}}>{favorites.length}</span>}
-          </button>
-          <button className="nav-btn cart-btn" onClick={() => setIsCartOpen(true)} title="View Cart">
-            🛒 {cartItemCount > 0 && <span className="cart-badge">{cartItemCount}</span>}
-          </button>
-        </nav>
-      </div>
-    </header>
+          <nav className="nav-actions">
+            {!session ? (
+              <button className="nav-btn" onClick={() => navigate('/auth')}>Sign In</button>
+            ) : (
+              <div className="user-menu" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                {userRole === 'retailer' && (
+                   <button className="nav-btn" style={{color: 'var(--primary-cyan)'}} onClick={() => navigate('/retailer-dashboard')}>
+                     Retailer Dashboard
+                   </button>
+                )}
+                <span style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>
+                  {session?.user?.email}
+                </span>
+                <button className="nav-btn" onClick={() => navigate('/profile')} title="My Profile" style={{ fontSize: '1.1rem' }}>
+                  👤
+                </button>
+                <button className="nav-btn" onClick={handleSignOut}>Sign Out</button>
+              </div>
+            )}
+            <button className="nav-btn cart-btn" onClick={() => navigate('/favorites.html')} style={{ marginRight: '10px' }} title="View Favorites">
+              ❤️ {favorites.length > 0 && <span className="cart-badge" style={{background:'#e11d48'}}>{favorites.length}</span>}
+            </button>
+            <button className="nav-btn cart-btn" onClick={() => setIsCartOpen(true)} title="View Cart">
+              🛒 {cartItemCount > 0 && <span className="cart-badge">{cartItemCount}</span>}
+            </button>
+          </nav>
+        </div>
+      </header>
+    </>
   );
 }

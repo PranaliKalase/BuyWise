@@ -4,11 +4,16 @@
   left: 0;
   right: 0;
   height: 80px;
-  z-index: 100;
+  z-index: 9999;
   border-radius: 0;
   border-left: none;
   border-right: none;
   border-top: none;
+}
+
+.header-spacer {
+  height: 80px;
+  width: 100%;
 }
 
 .header-container {
@@ -111,6 +116,10 @@
 
 /* Mobile Responsiveness */
 @media (max-width: 768px) {
+  .header-spacer {
+    height: 200px;
+  }
+
   .header {
     height: auto;
     padding: 1rem 0;

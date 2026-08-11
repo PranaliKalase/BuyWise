@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { useFavorites } from '../context/FavoritesContext';
 import './ProductCard.css';
 import PriceComparisonModal from './PriceComparisonModal';
 
 export default function ProductCard({ product }) {
+  const navigate = useNavigate();
   const [isCompareOpen, setIsCompareOpen] = useState(false);
   const { addToCart, setIsCartOpen } = useCart();
   const { toggleFavorite, isFavorite } = useFavorites();
@@ -12,6 +14,10 @@ export default function ProductCard({ product }) {
   const handleAddToCart = () => {
     addToCart(product);
     setIsCartOpen(true);
+  };
+
+  const handleCardClick = () => {
+    navigate(`/product/${product.id}`);
   };
 
   return (
@@ -25,11 +31,11 @@ export default function ProductCard({ product }) {
           </div>
         )}
 
-        <div className="card-image-wrapper">
+        <div className="card-image-wrapper" onClick={handleCardClick} style={{ cursor: 'pointer' }}>
           <img src={product.image} alt={product.name} className="card-image" />
           
           {/* Hover Actions */}
-          <div className="card-overlay">
+          <div className="card-overlay" onClick={e => e.stopPropagation()}>
             <button 
               className="action-btn icon-btn" 
               title={isFavorite(product.id) ? "Remove from Favorites" : "Add to Favorites"}
@@ -38,7 +44,7 @@ export default function ProductCard({ product }) {
             >
               {isFavorite(product.id) ? '❤️' : '🤍'}
             </button>
-            <button className="action-btn icon-btn" title="View Similar">🔍</button>
+            <button className="action-btn icon-btn" title="View Details" onClick={handleCardClick}>🔍</button>
           </div>
           
           {product.in_stock === false && (
@@ -50,13 +56,13 @@ export default function ProductCard({ product }) {
 
         <div className="card-content">
           <p className="category text-gradient">{product.category}</p>
-          <h3 className="product-name">{product.name}</h3>
+          <h3 className="product-name" onClick={handleCardClick} style={{ cursor: 'pointer' }}>{product.name}</h3>
           <p className="product-desc">{product.description}</p>
           
           <div className="card-footer">
             <span className="price">₹{product.price.toFixed(2)}</span>
-            <div className="rating">
-               ⭐ {product.rating} <span className="reviews">({product.reviews})</span>
+            <div className="rating" onClick={handleCardClick} style={{ cursor: 'pointer' }}>
+               ⭐ {product.rating || 4.5} <span className="reviews">({product.reviews || 12})</span>
             </div>
           </div>
 

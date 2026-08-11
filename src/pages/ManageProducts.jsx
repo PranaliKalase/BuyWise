@@ -1,13 +1,24 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, X } from 'lucide-react';
 import './ManageProducts.css';
 
 export default function ManageProducts({ session }) {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isRetailer, setIsRetailer] = useState(null);
+  
+  // Edit Modal State
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editingProduct, setEditingProduct] = useState(null);
+  const [editName, setEditName] = useState('');
+  const [editDescription, setEditDescription] = useState('');
+  const [editCategory, setEditCategory] = useState("Men's Fashion");
+  const [editImageFile, setEditImageFile] = useState(null);
+  const [editLoading, setEditLoading] = useState(false);
+  const [editStatusMsg, setEditStatusMsg] = useState('');
+
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -104,6 +115,119 @@ export default function ManageProducts({ session }) {
     }
   };
 
+  const openEditModal = (product) => {
+    setEditingProduct(product);
+    setEditName(product.name);
+    setEditDescription(product.description || '');
+    setEditCategory(product.category || "Men's Fashion");
+    setEditImageFile(null);
+    setEditStatusMsg('');
+    setIsEditModalOpen(true);
+  };
+
+  const closeEditModal = () => {
+    setIsEditModalOpen(false);
+    setEditingProduct(null);
+  };
+
+  const handleEditSubmit = async (e) => {
+    e.preventDefault();
+    if (!editName.trim()) {
+      setEditStatusMsg("Product name is required.");
+      return;
+    }
+    
+    setEditLoading(true);
+    setEditStatusMsg("Saving changes...");
+
+    try {
+      let finalImageUrl = editingProduct.image;
+
+      // 1. Upload new image if selected
+      if (editImageFile) {
+        setEditStatusMsg("Uploading new image...");
+        const fileExt = editImageFile.name.split('.').pop();
+        const fileName = `${Math.random()}.${fileExt}`;
+        const filePath = `public/${fileName}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from('product-images')
+          .upload(filePath, editImageFile);
+
+        if (uploadError) throw uploadError;
+
+        const { data: { publicUrl } } = supabase.storage
+          .from('product-images')
+          .getPublicUrl(filePath);
+          
+        finalImageUrl = publicUrl;
+
+        // Try to delete old image
+        if (editingProduct.image && editingProduct.image.includes('supabase.co/storage/v1/object/public/product-images/')) {
+          const oldUrlParts = editingProduct.image.split('/');
+          const oldFileName = oldUrlParts[oldUrlParts.length - 1];
+          await supabase.storage.from('product-images').remove([`public/${oldFileName}`]);
+        }
+      }
+
+      // 2. AI Moderation Check
+      setEditStatusMsg("Running AI Moderation check...");
+      let isFlagged = editingProduct.ai_flagged;
+      let aiConfidence = editingProduct.ai_confidence;
+      
+      try {
+        const aiResponse = await fetch('http://localhost:8000/api/moderate/product', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+             name: editName,
+             description: editDescription,
+             category: editCategory
+          })
+        });
+        const aiResult = await aiResponse.json();
+        if (aiResult.status === 'success') {
+           isFlagged = aiResult.ai_flagged;
+           aiConfidence = aiResult.confidence;
+        }
+      } catch (aiErr) {
+        console.warn("AI Moderation endpoint unreachable, defaulting to previous safe state.", aiErr);
+      }
+
+      setEditStatusMsg("Updating database...");
+
+      // 3. Update Product in Supabase
+      const { error: dbError } = await supabase.from('products').update({
+        name: editName,
+        description: editDescription,
+        category: editCategory,
+        image: finalImageUrl,
+        ai_flagged: isFlagged,
+        ai_confidence: aiConfidence
+      }).eq('id', editingProduct.id);
+
+      if (dbError) throw dbError;
+
+      // 4. Update local state
+      setProducts(products.map(p => 
+        p.id === editingProduct.id 
+          ? { ...p, name: editName, description: editDescription, category: editCategory, image: finalImageUrl, ai_flagged: isFlagged, ai_confidence: aiConfidence } 
+          : p
+      ));
+
+      setEditStatusMsg("Product updated successfully!");
+      setTimeout(() => {
+        closeEditModal();
+      }, 1000);
+
+    } catch (err) {
+      console.error(err);
+      setEditStatusMsg(`Error: ${err.message}`);
+    } finally {
+      setEditLoading(false);
+    }
+  };
+
   if (isRetailer !== true) return null;
 
   return (
@@ -146,6 +270,12 @@ export default function ManageProducts({ session }) {
                   {product.in_stock === false ? 'Mark in Stock' : 'Mark Out of Stock'}
                 </button>
                 <button 
+                  className="btn btn-secondary"
+                  onClick={() => openEditModal(product)}
+                >
+                  Edit
+                </button>
+                <button 
                   className="btn btn-danger"
                   onClick={() => handleDelete(product.id, product.image)}
                 >
@@ -154,6 +284,93 @@ export default function ManageProducts({ session }) {
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {isEditModalOpen && editingProduct && (
+        <div className="edit-modal-overlay" onClick={closeEditModal}>
+          <div className="edit-modal glass-panel" onClick={(e) => e.stopPropagation()}>
+            <div className="edit-modal-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+              <h2 className="text-gradient" style={{ margin: 0 }}>Edit Product</h2>
+              <button onClick={closeEditModal} style={{ background: 'transparent', border: 'none', color: '#fff', cursor: 'pointer' }}><X size={20} /></button>
+            </div>
+            
+            {editStatusMsg && (
+              <div className={`admin-status ${editStatusMsg.includes('Error') ? 'error' : 'success'} glass-panel`}>
+                {editStatusMsg}
+              </div>
+            )}
+
+            <form onSubmit={handleEditSubmit} className="admin-form">
+              <div className="form-group">
+                <label>Current Image</label>
+                <div style={{ marginBottom: '1rem', display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                  <img src={editingProduct.image} alt={editingProduct.name} style={{ width: '80px', height: '80px', objectFit: 'cover', borderRadius: '8px' }} />
+                  <div style={{ flex: 1 }}>
+                    <label htmlFor="edit-image" style={{ fontSize: '0.85rem' }}>Upload New Image (Optional)</label>
+                    <input 
+                      type="file" 
+                      id="edit-image" 
+                      accept="image/*"
+                      onChange={(e) => setEditImageFile(e.target.files[0])}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="edit-name">Product Name</label>
+                <input 
+                  type="text" 
+                  id="edit-name" 
+                  required 
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                />
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="edit-category">Category</label>
+                <select 
+                  id="edit-category" 
+                  value={editCategory} 
+                  onChange={(e) => setEditCategory(e.target.value)}
+                >
+                  <option value="Men's Fashion">Men's Fashion</option>
+                  <option value="Women's Fashion">Women's Fashion</option>
+                  <option value="Home & Kitchen">Home & Kitchen</option>
+                  <option value="Kid's Fashion">Kid's Fashion</option>
+                  <option value="Beauty & Health">Beauty & Health</option>
+                  <option value="Automotives">Automotives</option>
+                  <option value="Mobile Accessories">Mobile Accessories</option>
+                  <option value="Electronics">Electronics</option>
+                  <option value="Sports & Fitness">Sports & Fitness</option>
+                  <option value="Computers">Computers</option>
+                  <option value="Books">Books</option>
+                </select>
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="edit-desc">Description</label>
+                <textarea 
+                  id="edit-desc" 
+                  required 
+                  rows="3"
+                  value={editDescription}
+                  onChange={(e) => setEditDescription(e.target.value)}
+                />
+              </div>
+
+              <div style={{ display: 'flex', gap: '1rem', marginTop: '1.5rem' }}>
+                <button type="button" className="btn btn-secondary" style={{ flex: 1 }} onClick={closeEditModal}>
+                  Cancel
+                </button>
+                <button type="submit" className="btn btn-primary" style={{ flex: 1 }} disabled={editLoading}>
+                  {editLoading ? 'Saving...' : 'Save Changes'}
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
     </div>

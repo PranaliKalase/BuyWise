@@ -18,6 +18,7 @@ import SearchPage from './pages/SearchPage'
 import FavoritesPage from './pages/FavoritesPage'
 import Checkout from './pages/Checkout'
 import ProfilePage from './pages/ProfilePage'
+import ProductDetailPage from './pages/ProductDetailPage'
 import { CartProvider } from './context/CartContext'
 import { FavoritesProvider } from './context/FavoritesContext'
 import { supabase } from './lib/supabaseClient'
@@ -46,6 +47,7 @@ function App() {
         <div className="app-container">
           <Routes>
             <Route path="/" element={<Home session={session} />} />
+            <Route path="/product/:id" element={<ProductDetailPage session={session} />} />
             <Route path="/search.html" element={<SearchPage session={session} />} />
             <Route path="/favorites.html" element={<FavoritesPage session={session} />} />
             <Route path="/checkout" element={<Checkout session={session} />} />
@@ -115,7 +117,7 @@ function Home({ session }) {
           });
           const grids = Object.keys(groupMap).map(catName => ({
             title: catName,
-            products: groupMap[catName].slice(0, 10)
+            products: groupMap[catName].slice(0, 4)
           }));
           grids.sort((a,b) => b.products.length - a.products.length);
           setCategoryGrids(grids);

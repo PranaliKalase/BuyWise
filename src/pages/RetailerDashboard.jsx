@@ -15,7 +15,7 @@ import './RetailerDashboard.css';
 
 // Helper function to format currency
 const formatCurrency = (amount) => {
-  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
+  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount).replace('$', '₹');
 };
 
 export default function RetailerDashboard({ session }) {
@@ -424,7 +424,7 @@ export default function RetailerDashboard({ session }) {
                   <LineChart data={revenueData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.05)" />
                     <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#64748b', fontSize: 12}} />
-                    <YAxis axisLine={false} tickLine={false} tick={{fill: '#64748b', fontSize: 12}} tickFormatter={(val) => '$' + (val >= 1000 ? (val/1000).toFixed(0) + 'K' : val)} />
+                    <YAxis axisLine={false} tickLine={false} tick={{fill: '#64748b', fontSize: 12}} tickFormatter={(val) => '₹' + (val >= 1000 ? (val/1000).toFixed(0) + 'K' : val)} />
                     <Tooltip cursor={{ fill: 'transparent' }} contentStyle={{ backgroundColor: '#1e293b', border: 'none', borderRadius: '8px', color: '#fff' }} formatter={(value) => formatCurrency(value)} />
                     <Line type="smooth" dataKey="currentWeek" stroke="#10b981" strokeWidth={3} dot={false} />
                     <Line type="smooth" dataKey="previousWeek" stroke="#6366f1" strokeWidth={3} dot={false} />
@@ -572,21 +572,21 @@ export default function RetailerDashboard({ session }) {
               </div>
 
               <div className="target-msg">
-                Your monthly target is $25k. Keep up the good work!
+                Your monthly target is ₹25k. Keep up the good work!
               </div>
 
               <div className="target-stats">
                 <div className="ts-item">
                   <span className="ts-label">Target</span>
-                  <span className="ts-val">$25k</span>
+                  <span className="ts-val">₹25k</span>
                 </div>
                 <div className="ts-item">
                   <span className="ts-label">Revenue</span>
-                  <span className="ts-val">${(metrics.revenue / 1000).toFixed(1)}k <ArrowUpRight size={14} color="#10b981" /></span>
+                  <span className="ts-val">₹{(metrics.revenue / 1000).toFixed(1)}k <ArrowUpRight size={14} color="#10b981" /></span>
                 </div>
                 <div className="ts-item">
                   <span className="ts-label">Today</span>
-                  <span className="ts-val">${((metrics.revenue / 30) / 1000).toFixed(1)}k <ArrowUpRight size={14} color="#10b981" /></span>
+                  <span className="ts-val">₹{((metrics.revenue / 30) / 1000).toFixed(1)}k <ArrowUpRight size={14} color="#10b981" /></span>
                 </div>
               </div>
             </div>

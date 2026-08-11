@@ -19,13 +19,16 @@ export default function ProductGrid({ title, products, personalized }) {
             {personalized && <span className="sparkle">✨</span>}
             {title}
           </h2>
-          <button className="btn-view-all" onClick={handleViewAll}>View All ↗</button>
         </div>
         
         <div className="product-grid">
           {products.map(product => (
             <ProductCard key={product.id} product={product} />
           ))}
+        </div>
+        
+        <div className="view-all-container" style={{ textAlign: 'center', marginTop: '2rem' }}>
+          <button className="btn-view-all btn btn-secondary" onClick={handleViewAll} style={{ padding: '0.8rem 2rem', fontSize: '1rem', borderRadius: '8px' }}>View All {title} ↗</button>
         </div>
       </div>
     </section>
