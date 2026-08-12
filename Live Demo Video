@@ -1,3 +1,20 @@
 Demo Video Link- 
 https://drive.google.com/file/d/1q8DkbMRej3MTDqzkFodhZQTSSZvq0ULa/view?usp=sharing
 
+🌐 Live Demo
+
+🚀 Try BuyWise: https://buywise-ohn0.onrender.com/
+
+The live demo allows judges to explore the BuyWise prototype directly without local setup.
+
+🏃 Run Locally
+
+If you want to run the project locally:
+
+git clone https://github.com/PranaliKalase/BuyWise.git
+cd BuyWise
+npm install
+npm run dev
+
+Then open http://localhost:5173 in your browser.
+
