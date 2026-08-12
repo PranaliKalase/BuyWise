@@ -280,4 +280,4 @@ BuyWise aims to make intelligent retail analytics accessible to retailers by com
 
 **BuyWise – AI-Powered Smart Retail Intelligence Platform**
 
-Built with ❤️ using modern web technologies and AI.
+
